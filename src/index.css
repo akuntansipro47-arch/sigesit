@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Ensure body takes full width/height on mobile */
+html, body {
+  width: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fix mobile viewport issues */
+@media (max-width: 640px) {
+  #root {
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+}
+
+/* FORCE MOBILE NAV VISIBILITY ON SMALL SCREENS */
+@media (max-width: 1024px) {
+  .safe-area-bottom {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 99999 !important;
+    background: white !important;
+    border-top: 1px solid #e5e7eb !important;
+  }
+}
