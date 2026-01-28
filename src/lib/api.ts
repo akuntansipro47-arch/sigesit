@@ -308,7 +308,7 @@ async function resolveLocationId(
   }
 
   // 5. If not found, create new
-  const { data: created, error: insertError } = await supabase
+  const { data: created } = await supabase
     .from(type)
     .insert({ [parentField]: parentId, name: input })
     .select('id')

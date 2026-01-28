@@ -150,12 +150,10 @@ export default function EntryList() {
   // Group entries by House (Kelurahan + RW + RT + Address) to handle multiple KKs per house
   const entriesWithHouseNumber = (() => {
     const houseMap = new Map(); // RTKey -> [Address1, Address2, ...]
-    const houseStats = new Map(); // HouseKey -> { sequenceNo, totalKK }
     
     return filteredEntries.map((entry) => {
       const rtKey = `${entry.kelurahan_id}-${entry.rw_id}-${entry.rt_id}`;
       const addressKey = (entry.address || '').toLowerCase().trim();
-      const houseKey = `${rtKey}-${addressKey}`;
 
       if (!houseMap.has(rtKey)) {
         houseMap.set(rtKey, []);
