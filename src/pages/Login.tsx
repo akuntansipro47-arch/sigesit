@@ -157,19 +157,9 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
         else navigate('/entry');
       }
     } catch (err: any) {
-      // Don't override the specific error message if it was thrown above
-      if (err.message && (
-        err.message.includes('AKUN DINONAKTIFKAN') || 
-        err.message.includes('AKUN TIDAK LENGKAP') || 
-        err.message.includes('AKUN BELUM AKTIF') ||
-        err.message.includes('Email yang dicoba') || 
-        err.message.includes('PROFIL KOSONG')
-      )) {
-        setError(err.message);
-      } else {
-        setError('Gagal login. Periksa username dan password anda.');
-      }
-      console.error(err);
+      // Show the actual error message for debugging
+      console.error('Login detailed error:', err);
+      setError(err.message || 'Gagal login. Periksa username dan password anda.');
     } finally {
       setLoading(false);
     }
@@ -242,11 +232,11 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
           {/* VERSION BADGE */}
           <div className="mt-4 flex flex-col items-center gap-2">
             <div className="inline-block bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-orange-200 animate-bounce border border-white/20">
-              V4.4.2 TERBARU
+              V4.4.3 DEBUG MODE
             </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 30 Jan 2026 | 08:30 WIB
+              Update Terakhir: 30 Jan 2026 | 09:15 WIB
             </div>
             <button 
               onClick={handleHardReset}
@@ -321,7 +311,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
       </div>
       
       <div className="text-center mt-8 text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.2</p>
+        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.3</p>
         <p>info@akuntansipro.com</p>
       </div>
     </div>
