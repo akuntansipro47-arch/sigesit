@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { getPKMProfile } from '@/lib/api';
 
 export default function Login() {
   const [username, setUsername] = useState('');

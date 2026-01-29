@@ -5,10 +5,9 @@ import AdminDashboard from './pages/admin/Dashboard'
 import EntryDashboard from './pages/entry/EntryDashboard'
 import { useEffect } from 'react'
 import { processOfflineQueue } from './lib/offline'
-import { getPKMProfile } from './lib/api'
 
 function App() {
-  const { profile, loading, isAdmin, pkmProfile } = useAuth()
+  const { profile, loading, isAdmin } = useAuth()
 
   // Force reload if version mismatch (Simple cache buster)
   useEffect(() => {

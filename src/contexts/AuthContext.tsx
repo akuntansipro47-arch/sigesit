@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Fetch from server
     const fetchPkm = async () => {
-      const { data, error } = await supabase.from('pkm_profile').select('*').single();
+      const { data } = await supabase.from('pkm_profile').select('*').single();
       if (data) {
         setPkmProfile(data);
         localStorage.setItem('pkm_profile_v1', JSON.stringify(data));

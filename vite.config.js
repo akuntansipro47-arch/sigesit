@@ -8,7 +8,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            selfDestroying: false,
+            selfDestroying: true,
             workbox: {
                 cleanupOutdatedCaches: true,
                 skipWaiting: true,
