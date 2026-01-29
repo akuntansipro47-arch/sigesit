@@ -236,13 +236,13 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
                }} 
              />
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-2">SIGESIT</h1>
-          <p className="text-slate-500 font-medium text-sm tracking-wide">Sistem Informasi Kesehatan Lingkungan</p>
+          <h1 className="text-3xl font-black text-blue-600 tracking-tight mb-2">SIGESIT SADAKELING</h1>
+          <p className="text-slate-500 font-bold text-xs tracking-widest uppercase">PKM PADASUKA - KOTA CIMAHI</p>
           
           {/* VERSION BADGE */}
           <div className="mt-4 flex flex-col items-center gap-2">
-            <div className="inline-block bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-emerald-200 animate-pulse border border-white/20">
-              V4.4.2 FORCE UPDATE
+            <div className="inline-block bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-orange-200 animate-bounce border border-white/20">
+              V4.4.2 TERBARU
             </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
