@@ -91,7 +91,7 @@ export default function Login() {
 
       const computedEmail = username.includes('@') 
         ? username 
-        : `${username}@sigesit.com`;
+        : `${username.replace(/\*/g, '')}@sigesit.com`;
 
       console.log('Login attempt:', { username, emailToUse: computedEmail });
 
@@ -168,7 +168,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
   const computedEmail = React.useMemo(() => {
     if (!username) return '';
     if (username.includes('@')) return username;
-    return `${username}@sigesit.com`;
+    return `${username.replace(/\*/g, '')}@sigesit.com`;
   }, [username]);
 
   // Check for forced mock mode
