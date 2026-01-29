@@ -17,18 +17,23 @@ export default function EntryList() {
   const [rwFilter, setRwFilter] = useState('');
   const [rtFilter, setRtFilter] = useState('');
   const [kaderFilter, setKaderFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [limit, setLimit] = useState(50);
+  const [exportPerKK, setExportPerKK] = useState(false);
 
   useEffect(() => {
     if (profile) {
       loadEntries();
     }
-  }, [profile, isAdmin]);
+  }, [profile, isAdmin, dateFrom, dateTo]);
 
   const loadEntries = async () => {
     try {
       if (!profile) return;
-      // Gunakan status isAdmin untuk fetch data
-      const data = await getUserEntries(profile.id, isAdmin);
+      setLoading(true);
+      // Optimasi: Filter tanggal langsung di server untuk mengurangi beban loading
+      const data = await getUserEntries(profile.id, isAdmin, dateFrom, dateTo);
       setEntries(data || []);
     } catch (error) {
       console.error(error);
@@ -129,23 +134,6 @@ export default function EntryList() {
     return rtComp;
   });
 
-  // Extract Unique Filters
-  const uniqueRWs = Array.from(new Set(entries.map(e => e.rw?.name)))
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-
-  const uniqueRTs = Array.from(new Set(entries.map(e => e.rt?.name)))
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-
-  const uniqueKaders = Array.from(new Map(entries.map(e => [e.user_id, e.kader?.name])).entries())
-    .filter(([id, name]) => id && name)
-    .sort((a, b) => a[1].localeCompare(b[1]));
-
-  const uniqueKelurahans = Array.from(new Map(entries.map(e => [e.kelurahan_id, e.kelurahan?.name])).entries())
-    .filter(([id, name]) => id && name)
-    .sort((a, b) => a[1].localeCompare(b[1]));
-
   // HOUSE NUMBERING & GROUPING LOGIC (No Urut Rumah per RT)
   // Group entries by House (Kelurahan + RW + RT + Address) to handle multiple KKs per house
   const entriesWithHouseNumber = (() => {
@@ -192,93 +180,217 @@ export default function EntryList() {
     });
   })();
 
+  // Extract Unique Filters
+  const paginatedEntries = entriesWithHouseNumber.slice(0, limit);
+
+  const handleLoadMore = () => {
+    setLimit(prev => prev + 50);
+  };
+
+  const uniqueRWs = Array.from(new Set(entries.map(e => e.rw?.name)))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+  const uniqueRTs = Array.from(new Set(entries.map(e => e.rt?.name)))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+  const uniqueKaders = Array.from(new Map(entries.map(e => [e.user_id, e.kader?.name])).entries())
+    .filter(([id, name]) => id && name)
+    .sort((a, b) => a[1].localeCompare(b[1]));
+
+  const uniqueKelurahans = Array.from(new Map(entries.map(e => [e.kelurahan_id, e.kelurahan?.name])).entries())
+    .filter(([id, name]) => id && name)
+    .sort((a, b) => a[1].localeCompare(b[1]));
+
   const handleExport = () => {
     if (entriesWithHouseNumber.length === 0) {
       alert('Tidak ada data untuk di-export');
       return;
     }
 
-    // Format Data for Excel - LENGKAP dengan semua field
-    const dataToExport = entriesWithHouseNumber.map((e, index) => ({
-      'No': index + 1,
-      'Tanggal Survey': e.date_entry,
-      'Input Oleh': e.kader?.name || 'Unknown',
-      'No. Rumah': e.house_sequence_no,
-      'No. KK': getKKNumber(e),
-      'Kepala Keluarga': getHeadName(e),
-      'Jumlah Keluarga': e.total_families_in_house || 0,
-      'Alamat': e.address,
-      'Kelurahan': e.kelurahan?.name || '',
-      'RW': e.rw?.name || '',
-      'RT': e.rt?.name || '',
-      'Total Jiwa': e.total_souls || 0,
-      'Jiwa Menetap': e.permanent_souls || 0,
-      'Jumlah Jamban': e.latrine_count || 0,
-      
-      // Pilar 1 - Jamban
-      'BAB di Jamban': e.jamban_bab_jamban ? 'Ya' : 'Tidak',
-      'Jamban Milik Sendiri': e.jamban_milik_sendiri ? 'Ya' : 'Tidak',
-      'Kloset Leher Angsa': e.jamban_leher_angsa ? 'Ya' : 'Tidak',
-      'Septik Disedot 3-5 Thn': e.jamban_septik_aman ? 'Ya' : 'Tidak',
-      'Septik Tidak Disedot': e.jamban_septik_tidak_sedot ? 'Ya' : 'Tidak',
-      'Cubluk/Lubang Tanah': e.jamban_cubluk ? 'Ya' : 'Tidak',
-      'Buang ke Drainase': e.jamban_dibuang_drainase ? 'Ya' : 'Tidak',
-      'JAMBAN SEHAT': (e.jamban_leher_angsa && (e.jamban_septik_aman || e.jamban_septik_tidak_sedot)) ? 'Ya' : 'Tidak',
-      
-      // Pilar 2 - CTPS
-      'Sarana CTPS': e.ctps_sarana ? 'Ya' : 'Tidak',
-      'Air Mengalir': e.ctps_air_mengalir ? 'Ya' : 'Tidak',
-      'Sabun Tersedia': e.ctps_sabun ? 'Ya' : 'Tidak',
-      'Mampu Praktek CTPS': e.ctps_mampu_praktek ? 'Ya' : 'Tidak',
-      'CTPS Sebelum Makan': e.ctps_sebelum_makan ? 'Ya' : 'Tidak',
-      'CTPS Sebelum Olah Makan': e.ctps_sebelum_olah_makan ? 'Ya' : 'Tidak',
-      'CTPS Sebelum Susui': e.ctps_sebelum_susui ? 'Ya' : 'Tidak',
-      'CTPS Setelah BAB': e.ctps_setelah_bab ? 'Ya' : 'Tidak',
-      'CTPS MEMENUHI': (e.ctps_sarana && e.ctps_air_mengalir && e.ctps_sabun) ? 'Ya' : 'Tidak',
-      
-      // Pilar 3 - Air Minum
-      'Air Perpipaan': e.air_layak_perpipaan ? 'Ya' : 'Tidak',
-      'Kran Umum': e.air_layak_kran_umum ? 'Ya' : 'Tidak',
-      'Sumur Gali Terlindung': e.air_layak_sg_terlindung ? 'Ya' : 'Tidak',
-      'SGL (Pompa)': e.air_layak_sgl ? 'Ya' : 'Tidak',
-      'SPL (Bor)': e.air_layak_spl ? 'Ya' : 'Tidak',
-      'Mata Air Terlindung': e.air_layak_mata_air ? 'Ya' : 'Tidak',
-      'Air Hujan': e.air_layak_hujan ? 'Ya' : 'Tidak',
-      'Air Tidak Layak Sungai': e.air_tidak_layak_sungai ? 'Ya' : 'Tidak',
-      'Air Tidak Layak Danau': e.air_tidak_layak_danau ? 'Ya' : 'Tidak',
-      'Air Diolah': e.olah_air_proses ? 'Ya' : 'Tidak',
-      'Air Disimpan Tertutup': e.olah_air_simpan_tutup ? 'Ya' : 'Tidak',
-      'AIR LAYAK': (e.air_layak_perpipaan || e.air_layak_kran_umum || e.air_layak_sg_terlindung || e.air_layak_mata_air) ? 'Ya' : 'Tidak',
-      
-      // Pangan
-      'Makanan Tertutup': e.pangan_tutup ? 'Ya' : 'Tidak',
-      'Pisah dari B3': e.pangan_pisah_b3 ? 'Ya' : 'Tidak',
-      '5 Kunci Pangan': e.pangan_5_kunci ? 'Ya' : 'Tidak',
-      
-      // Pilar 4 - Sampah
-      'Sampah Tidak Serak': e.sampah_tidak_serak ? 'Ya' : 'Tidak',
-      'Tempat Sampah Tertutup': e.sampah_tutup_kuat ? 'Ya' : 'Tidak',
-      'Sampah Diolah Aman': e.sampah_olah_aman ? 'Ya' : 'Tidak',
-      'Sampah Dipilah': e.sampah_pilah ? 'Ya' : 'Tidak',
-      'SAMPAH AMAN': (e.sampah_tidak_serak && e.sampah_olah_aman) ? 'Ya' : 'Tidak',
-      
-      // Pilar 5 - Limbah
-      'Tidak Ada Genangan': e.limbah_tidak_genang ? 'Ya' : 'Tidak',
-      'Saluran Kedap': e.limbah_saluran_kedap ? 'Ya' : 'Tidak',
-      'Resapan/IPAL': e.limbah_resapan_ipal ? 'Ya' : 'Tidak',
-      'LIMBAH AMAN': (e.limbah_tidak_genang && e.limbah_saluran_kedap) ? 'Ya' : 'Tidak',
-      
-      // PKURT
-      'Jendela Kamar Dibuka': e.pkurt_jendela_kamar ? 'Ya' : 'Tidak',
-      'Jendela Keluarga Dibuka': e.pkurt_jendela_keluarga ? 'Ya' : 'Tidak',
-      'Ventilasi Ada': e.pkurt_ventilasi ? 'Ya' : 'Tidak',
-      'Lubang Asap Dapur': e.pkurt_lubang_asap ? 'Ya' : 'Tidak',
-      'Cahaya Alami': e.pkurt_cahaya_alami ? 'Ya' : 'Tidak',
-      'Tidak Merokok di Rumah': e.pkurt_tidak_merokok ? 'Ya' : 'Tidak',
-    }));
+    let dataToExport: any[] = [];
 
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    if (exportPerKK) {
+      // Logic Export per Kartu Keluarga (Flattened)
+      entriesWithHouseNumber.forEach((e) => {
+        const members = e.family_members && e.family_members.length > 0 ? e.family_members : [{ head_of_family: '(Kosong)', kk_number: '(Kosong)' }];
+        
+        members.forEach((m: any, memberIdx: number) => {
+          dataToExport.push({
+            'No': dataToExport.length + 1,
+            'Tanggal Survey': e.date_entry,
+            'Input Oleh': e.kader?.name || 'Unknown',
+            'No. Rumah': e.house_sequence_no,
+            'No. KK': m.kk_number || '(No KK Kosong)',
+            'Kepala Keluarga': m.head_of_family || '(Nama Kosong)',
+            'Urutan KK di Rumah': memberIdx + 1,
+            'Jumlah Keluarga di Rumah': e.total_families_in_house || 0,
+            'Alamat': e.address,
+            'Kelurahan': e.kelurahan?.name || '',
+            'RW': e.rw?.name || '',
+            'RT': e.rt?.name || '',
+            'Total Jiwa (KK)': m.total_souls || (memberIdx === 0 ? e.total_souls : 0),
+            'Jiwa Menetap (KK)': m.permanent_souls || (memberIdx === 0 ? e.permanent_souls : 0),
+            'Jumlah Jamban (KK)': m.latrine_count || (memberIdx === 0 ? e.latrine_count : 0),
+            
+            // Pilar 1 - Jamban
+            'BAB di Jamban': e.jamban_bab_jamban ? 'Ya' : 'Tidak',
+            'Jamban Milik Sendiri': e.jamban_milik_sendiri ? 'Ya' : 'Tidak',
+            'Kloset Leher Angsa': e.jamban_leher_angsa ? 'Ya' : 'Tidak',
+            'Septik Disedot 3-5 Thn': e.jamban_septik_aman ? 'Ya' : 'Tidak',
+            'Septik Tidak Disedot': e.jamban_septik_tidak_sedot ? 'Ya' : 'Tidak',
+            'Cubluk/Lubang Tanah': e.jamban_cubluk ? 'Ya' : 'Tidak',
+            'Buang ke Drainase': e.jamban_dibuang_drainase ? 'Ya' : 'Tidak',
+            'JAMBAN SEHAT': (e.jamban_leher_angsa && (e.jamban_septik_aman || e.jamban_septik_tidak_sedot)) ? 'Ya' : 'Tidak',
+            
+            // Pilar 2 - CTPS
+            'Sarana CTPS': e.ctps_sarana ? 'Ya' : 'Tidak',
+            'Air Mengalir': e.ctps_air_mengalir ? 'Ya' : 'Tidak',
+            'Sabun Tersedia': e.ctps_sabun ? 'Ya' : 'Tidak',
+            'Mampu Praktek CTPS': e.ctps_mampu_praktek ? 'Ya' : 'Tidak',
+            'CTPS Sebelum Makan': e.ctps_sebelum_makan ? 'Ya' : 'Tidak',
+            'CTPS Sebelum Olah Makan': e.ctps_sebelum_olah_makan ? 'Ya' : 'Tidak',
+            'CTPS Sebelum Susui': e.ctps_sebelum_susui ? 'Ya' : 'Tidak',
+            'CTPS Setelah BAB': e.ctps_setelah_bab ? 'Ya' : 'Tidak',
+            'CTPS MEMENUHI': (e.ctps_sarana && e.ctps_air_mengalir && e.ctps_sabun) ? 'Ya' : 'Tidak',
+            
+            // Pilar 3 - Air Minum
+            'Air Perpipaan': e.air_layak_perpipaan ? 'Ya' : 'Tidak',
+            'Kran Umum': e.air_layak_kran_umum ? 'Ya' : 'Tidak',
+            'Sumur Gali Terlindung': e.air_layak_sg_terlindung ? 'Ya' : 'Tidak',
+            'SGL (Pompa)': e.air_layak_sgl ? 'Ya' : 'Tidak',
+            'SPL (Bor)': e.air_layak_spl ? 'Ya' : 'Tidak',
+            'Mata Air Terlindung': e.air_layak_mata_air ? 'Ya' : 'Tidak',
+            'Air Hujan': e.air_layak_hujan ? 'Ya' : 'Tidak',
+            'Air Tidak Layak Sungai': e.air_tidak_layak_sungai ? 'Ya' : 'Tidak',
+            'Air Tidak Layak Danau': e.air_tidak_layak_danau ? 'Ya' : 'Tidak',
+            'Air Diolah': e.olah_air_proses ? 'Ya' : 'Tidak',
+            'Air Disimpan Tertutup': e.olah_air_simpan_tutup ? 'Ya' : 'Tidak',
+            'AIR MINUM LAYAK': (e.air_layak_perpipaan || e.air_layak_kran_umum || e.air_layak_sg_terlindung || e.air_layak_mata_air) ? 'Ya' : 'Tidak',
+            
+            // Pangan
+            'Makanan Tertutup': e.pangan_tutup ? 'Ya' : 'Tidak',
+            'Pisah dari B3': e.pangan_pisah_b3 ? 'Ya' : 'Tidak',
+            '5 Kunci Pangan': e.pangan_5_kunci ? 'Ya' : 'Tidak',
+            
+            // Pilar 4 - Sampah
+            'Sampah Tidak Serak': e.sampah_tidak_serak ? 'Ya' : 'Tidak',
+            'Tempat Sampah Tertutup': e.sampah_tutup_kuat ? 'Ya' : 'Tidak',
+            'Sampah Diolah Aman': e.sampah_olah_aman ? 'Ya' : 'Tidak',
+            'Sampah Dipilah': e.sampah_pilah ? 'Ya' : 'Tidak',
+            'SAMPAH AMAN': (e.sampah_tidak_serak && e.sampah_olah_aman) ? 'Ya' : 'Tidak',
+            
+            // Pilar 5 - Limbah
+            'Tidak Ada Genangan': e.limbah_tidak_genang ? 'Ya' : 'Tidak',
+            'Saluran Kedap': e.limbah_saluran_kedap ? 'Ya' : 'Tidak',
+            'Resapan/IPAL': e.limbah_resapan_ipal ? 'Ya' : 'Tidak',
+            'LIMBAH AMAN': (e.limbah_tidak_genang && e.limbah_saluran_kedap) ? 'Ya' : 'Tidak',
+            
+            // PKURT
+            'Jendela Kamar Dibuka': e.pkurt_jendela_kamar ? 'Ya' : 'Tidak',
+            'Jendela Keluarga Dibuka': e.pkurt_jendela_keluarga ? 'Ya' : 'Tidak',
+            'Ventilasi Ada': e.pkurt_ventilasi ? 'Ya' : 'Tidak',
+            'Lubang Asap Dapur': e.pkurt_lubang_asap ? 'Ya' : 'Tidak',
+            'Cahaya Alami': e.pkurt_cahaya_alami ? 'Ya' : 'Tidak',
+            'Tidak Merokok di Rumah': e.pkurt_tidak_merokok ? 'Ya' : 'Tidak',
+          });
+        });
+      });
+    } else {
+      // Format Data for Excel - PER RUMAH (Default)
+      dataToExport = entriesWithHouseNumber.map((e, index) => ({
+        'No': index + 1,
+        'Tanggal Survey': e.date_entry,
+        'Input Oleh': e.kader?.name || 'Unknown',
+        'No. Rumah': e.house_sequence_no,
+        'No. KK': getKKNumber(e),
+        'Kepala Keluarga': getHeadName(e),
+        'Jumlah Keluarga': e.total_families_in_house || 0,
+        'Alamat': e.address,
+        'Kelurahan': e.kelurahan?.name || '',
+        'RW': e.rw?.name || '',
+        'RT': e.rt?.name || '',
+        'Total Jiwa': e.total_souls || 0,
+        'Jiwa Menetap': e.permanent_souls || 0,
+        'Jumlah Jamban': e.latrine_count || 0,
+        
+        // Pilar 1 - Jamban
+        'BAB di Jamban': e.jamban_bab_jamban ? 'Ya' : 'Tidak',
+        'Jamban Milik Sendiri': e.jamban_milik_sendiri ? 'Ya' : 'Tidak',
+        'Kloset Leher Angsa': e.jamban_leher_angsa ? 'Ya' : 'Tidak',
+        'Septik Disedot 3-5 Thn': e.jamban_septik_aman ? 'Ya' : 'Tidak',
+        'Septik Tidak Disedot': e.jamban_septik_tidak_sedot ? 'Ya' : 'Tidak',
+        'Cubluk/Lubang Tanah': e.jamban_cubluk ? 'Ya' : 'Tidak',
+        'Buang ke Drainase': e.jamban_dibuang_drainase ? 'Ya' : 'Tidak',
+        'JAMBAN SEHAT': (e.jamban_leher_angsa && (e.jamban_septik_aman || e.jamban_septik_tidak_sedot)) ? 'Ya' : 'Tidak',
+        
+        // Pilar 2 - CTPS
+        'Sarana CTPS': e.ctps_sarana ? 'Ya' : 'Tidak',
+        'Air Mengalir': e.ctps_air_mengalir ? 'Ya' : 'Tidak',
+        'Sabun Tersedia': e.ctps_sabun ? 'Ya' : 'Tidak',
+        'Mampu Praktek CTPS': e.ctps_mampu_praktek ? 'Ya' : 'Tidak',
+        'CTPS Sebelum Makan': e.ctps_sebelum_makan ? 'Ya' : 'Tidak',
+        'CTPS Sebelum Olah Makan': e.ctps_sebelum_olah_makan ? 'Ya' : 'Tidak',
+        'CTPS Sebelum Susui': e.ctps_sebelum_susui ? 'Ya' : 'Tidak',
+        'CTPS Setelah BAB': e.ctps_setelah_bab ? 'Ya' : 'Tidak',
+        'CTPS MEMENUHI': (e.ctps_sarana && e.ctps_air_mengalir && e.ctps_sabun) ? 'Ya' : 'Tidak',
+        
+        // Pilar 3 - Air Minum
+        'Air Perpipaan': e.air_layak_perpipaan ? 'Ya' : 'Tidak',
+        'Kran Umum': e.air_layak_kran_umum ? 'Ya' : 'Tidak',
+        'Sumur Gali Terlindung': e.air_layak_sg_terlindung ? 'Ya' : 'Tidak',
+        'SGL (Pompa)': e.air_layak_sgl ? 'Ya' : 'Tidak',
+        'SPL (Bor)': e.air_layak_spl ? 'Ya' : 'Tidak',
+        'Mata Air Terlindung': e.air_layak_mata_air ? 'Ya' : 'Tidak',
+        'Air Hujan': e.air_layak_hujan ? 'Ya' : 'Tidak',
+        'Air Tidak Layak Sungai': e.air_tidak_layak_sungai ? 'Ya' : 'Tidak',
+        'Air Tidak Layak Danau': e.air_tidak_layak_danau ? 'Ya' : 'Tidak',
+        'Air Diolah': e.olah_air_proses ? 'Ya' : 'Tidak',
+        'Air Disimpan Tertutup': e.olah_air_simpan_tutup ? 'Ya' : 'Tidak',
+        'AIR MINUM LAYAK': (e.air_layak_perpipaan || e.air_layak_kran_umum || e.air_layak_sg_terlindung || e.air_layak_mata_air) ? 'Ya' : 'Tidak',
+        
+        // Pangan
+        'Makanan Tertutup': e.pangan_tutup ? 'Ya' : 'Tidak',
+        'Pisah dari B3': e.pangan_pisah_b3 ? 'Ya' : 'Tidak',
+        '5 Kunci Pangan': e.pangan_5_kunci ? 'Ya' : 'Tidak',
+        
+        // Pilar 4 - Sampah
+        'Sampah Tidak Serak': e.sampah_tidak_serak ? 'Ya' : 'Tidak',
+        'Tempat Sampah Tertutup': e.sampah_tutup_kuat ? 'Ya' : 'Tidak',
+        'Sampah Diolah Aman': e.sampah_olah_aman ? 'Ya' : 'Tidak',
+        'Sampah Dipilah': e.sampah_pilah ? 'Ya' : 'Tidak',
+        'SAMPAH AMAN': (e.sampah_tidak_serak && e.sampah_olah_aman) ? 'Ya' : 'Tidak',
+        
+        // Pilar 5 - Limbah
+        'Tidak Ada Genangan': e.limbah_tidak_genang ? 'Ya' : 'Tidak',
+        'Saluran Kedap': e.limbah_saluran_kedap ? 'Ya' : 'Tidak',
+        'Resapan/IPAL': e.limbah_resapan_ipal ? 'Ya' : 'Tidak',
+        'LIMBAH AMAN': (e.limbah_tidak_genang && e.limbah_saluran_kedap) ? 'Ya' : 'Tidak',
+        
+        // PKURT
+        'Jendela Kamar Dibuka': e.pkurt_jendela_kamar ? 'Ya' : 'Tidak',
+        'Jendela Keluarga Dibuka': e.pkurt_jendela_keluarga ? 'Ya' : 'Tidak',
+        'Ventilasi Ada': e.pkurt_ventilasi ? 'Ya' : 'Tidak',
+        'Lubang Asap Dapur': e.pkurt_lubang_asap ? 'Ya' : 'Tidak',
+        'Cahaya Alami': e.pkurt_cahaya_alami ? 'Ya' : 'Tidak',
+        'Tidak Merokok di Rumah': e.pkurt_tidak_merokok ? 'Ya' : 'Tidak',
+      }));
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet([]);
     
+    // Add Title and Info
+    XLSX.utils.sheet_add_aoa(worksheet, [
+      ["LAPORAN MONITORING SURVEY SIGESIT"],
+      [`Tanggal Export: ${new Date().toLocaleString('id-ID')}`],
+      [`Filter: ${searchTerm ? 'Cari: '+searchTerm : 'Semua'} | Kelurahan: ${kelFilter || 'Semua'} | RW: ${rwFilter || 'Semua'} | RT: ${rtFilter || 'Semua'}`],
+      []
+    ], { origin: 'A1' });
+
+    // Add Data starting from A5
+    XLSX.utils.sheet_add_json(worksheet, dataToExport, { origin: 'A5' });
+
     // Set column widths
     const colWidths = [
       { wch: 5 },   // No
@@ -319,6 +431,16 @@ export default function EntryList() {
             </div>
           </div>
           <div className="flex gap-2">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl mr-2">
+              <input 
+                type="checkbox" 
+                id="exportPerKK" 
+                checked={exportPerKK}
+                onChange={(e) => setExportPerKK(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="exportPerKK" className="text-[10px] font-black text-slate-600 uppercase cursor-pointer select-none">Export per KK</label>
+            </div>
             <button 
               onClick={() => {
                 setLoading(true);
@@ -360,6 +482,26 @@ export default function EntryList() {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="relative group">
+               <input 
+                 type="date"
+                 value={dateFrom}
+                 onChange={(e) => setDateFrom(e.target.value)}
+                 className="w-full pl-4 pr-4 py-3 border-2 border-slate-100 rounded-2xl text-[10px] font-black text-slate-700 appearance-none bg-white focus:border-blue-500 transition-all shadow-sm"
+                 title="Dari Tanggal"
+               />
+               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] font-black text-slate-300 uppercase">DARI</div>
+            </div>
+            <div className="relative group">
+               <input 
+                 type="date"
+                 value={dateTo}
+                 onChange={(e) => setDateTo(e.target.value)}
+                 className="w-full pl-4 pr-4 py-3 border-2 border-slate-100 rounded-2xl text-[10px] font-black text-slate-700 appearance-none bg-white focus:border-blue-500 transition-all shadow-sm"
+                 title="Sampai Tanggal"
+               />
+               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] font-black text-slate-300 uppercase">SAMPAI</div>
+            </div>
+            <div className="relative group">
                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center pointer-events-none group-focus-within:bg-purple-600 group-focus-within:text-white transition-colors">
                   <Filter size={14} className="text-purple-500 group-focus-within:text-white" />
                </div>
@@ -374,6 +516,25 @@ export default function EntryList() {
                  ))}
                </select>
             </div>
+            {isAdmin && (
+              <div className="relative group">
+                 <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center pointer-events-none group-focus-within:bg-orange-600 group-focus-within:text-white transition-colors">
+                    <User size={14} className="text-orange-500 group-focus-within:text-white" />
+                 </div>
+                 <select 
+                   value={kaderFilter}
+                   onChange={(e) => setKaderFilter(e.target.value)}
+                   className="w-full pl-14 pr-4 py-3 border-2 border-slate-100 rounded-2xl text-[10px] font-black text-slate-700 appearance-none bg-white focus:border-orange-500 transition-all shadow-sm"
+                 >
+                   <option value="">SEMUA KADER</option>
+                   {uniqueKaders.map(([id, name]) => (
+                     <option key={id} value={id}>{name}</option>
+                   ))}
+                 </select>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="relative group">
                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center pointer-events-none group-focus-within:bg-blue-600 group-focus-within:text-white transition-colors">
                   <Filter size={14} className="text-blue-500 group-focus-within:text-white" />
@@ -406,23 +567,6 @@ export default function EntryList() {
                  })}
                </select>
             </div>
-            {isAdmin && (
-              <div className="relative group">
-                 <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center pointer-events-none group-focus-within:bg-orange-600 group-focus-within:text-white transition-colors">
-                    <User size={14} className="text-orange-500 group-focus-within:text-white" />
-                 </div>
-                 <select 
-                   value={kaderFilter}
-                   onChange={(e) => setKaderFilter(e.target.value)}
-                   className="w-full pl-14 pr-4 py-3 border-2 border-slate-100 rounded-2xl text-[10px] font-black text-slate-700 appearance-none bg-white focus:border-orange-500 transition-all shadow-sm"
-                 >
-                   <option value="">SEMUA KADER</option>
-                   {uniqueKaders.map(([id, name]) => (
-                     <option key={id} value={id}>{name}</option>
-                   ))}
-                 </select>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -470,7 +614,7 @@ export default function EntryList() {
               </tr>
             </thead>
             <tbody>
-              {entriesWithHouseNumber.map((entry) => {
+              {paginatedEntries.map((entry) => {
                 const isJambanSehat = entry.jamban_leher_angsa && (entry.jamban_septik_aman || entry.jamban_septik_tidak_sedot);
                 const isAirLayak = entry.air_layak_perpipaan || entry.air_layak_kran_umum || entry.air_layak_sg_terlindung || 
                                  entry.air_layak_sgl || entry.air_layak_spl || entry.air_layak_mata_air || entry.air_layak_hujan;
@@ -530,7 +674,7 @@ export default function EntryList() {
                           </div>
                           <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[8px] font-black uppercase border ${isAirLayak ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
                              {isAirLayak ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
-                             Air Layak
+                             Air Minum Layak
                           </div>
                        </div>
                     </td>
@@ -557,6 +701,18 @@ export default function EntryList() {
               })}
             </tbody>
           </table>
+
+          {entriesWithHouseNumber.length > limit && (
+            <div className="mt-8 flex justify-center">
+              <button 
+                onClick={handleLoadMore}
+                className="flex items-center gap-2 px-8 py-4 bg-white text-blue-600 border-2 border-blue-100 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-md active:scale-95"
+              >
+                <Plus size={18} />
+                Tampilkan Lebih Banyak ({entriesWithHouseNumber.length - limit} Data Lagi)
+              </button>
+            </div>
+          )}
           <p className="mt-4 text-[10px] text-slate-400 font-bold italic text-center uppercase tracking-widest">* Geser tabel ke samping untuk melihat detail lengkap</p>
         </div>
       )}

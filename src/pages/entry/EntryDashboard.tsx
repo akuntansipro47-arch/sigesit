@@ -72,9 +72,9 @@ export default function EntryDashboard() {
   }, [location.pathname, profile?.id, navigate, signOut]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col">
+    <div className="min-h-screen bg-[#f1f5f9] flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white p-4 shadow-lg sticky top-0 z-20">
+      <header className="bg-gradient-to-r from-blue-700 to-indigo-600 text-white p-4 shadow-lg sticky top-0 z-20">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
              {/* Back/Menu Button */}
@@ -85,23 +85,31 @@ export default function EntryDashboard() {
              >
                {location.pathname !== '/entry' ? <ArrowLeft size={20} /> : <Menu size={20} />}
              </button>
-             <div className="bg-white p-1 rounded-full shadow-inner">
+             <div className="bg-white p-1 rounded-full shadow-lg border-2 border-white/50 w-12 h-12 flex items-center justify-center overflow-hidden">
                 <img 
                   src={(() => {
                     try {
                       const saved = localStorage.getItem('pkm_profile_permanent_v2');
-                      return saved ? JSON.parse(saved).logo_url : null;
-                    } catch { return null; }
-                  })() || '/vite.svg'} 
-                  className="h-10 w-10 object-contain rounded-full" 
+                      const parsed = saved ? JSON.parse(saved) : null;
+                      return parsed?.logo_url || '/logo-sigesit.png';
+                    } catch { return '/logo-sigesit.png'; }
+                  })()} 
+                  className="h-full w-full object-contain" 
                   alt="Logo"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/logo-sigesit.png';
+                  }}
                 />
              </div>
             <div>
-              <h1 className="font-extrabold text-lg tracking-tight">SIGESIT <span className="font-light opacity-80">Kader</span></h1>
-              <p className="text-[10px] font-medium opacity-90 bg-white/20 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                {profile?.name}
-              </p>
+              <h1 className="font-extrabold text-lg tracking-tight leading-tight uppercase">SIGESIT <span className="font-light opacity-80">SADAKELING</span></h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-black bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-md shadow-sm border border-yellow-300 uppercase tracking-wider">
+                  {profile?.name}
+                </span>
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">

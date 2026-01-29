@@ -16,44 +16,41 @@ export default function ProfileModule() {
   }, [profile]);
 
   useEffect(() => {
-    // 1. Try to load committed backup first
-    // Use v2 key
+    // 1. Show local data immediately for fast UI
     const committed = localStorage.getItem('pkm_profile_backup');
     const permanent = localStorage.getItem('pkm_profile_permanent_v2');
     
-    // PRIORITY: LOCAL DATA WINS ON MOUNT
     if (permanent) {
-       console.log("Restoring from V2 Permanent Backup");
        setProfile(JSON.parse(permanent));
     } else if (committed) {
       setProfile(JSON.parse(committed));
     }
     
-    // 2. Fetch fresh data from server BUT DO NOT OVERWRITE if local exists
-    loadProfile(!!permanent || !!committed);
+    // 2. ALWAYS fetch fresh data from server on mount
+    loadProfile();
   }, []);
 
-  const loadProfile = async (hasLocalData: boolean) => {
+  const loadProfile = async () => {
+    setLoading(true);
     try {
       const data = await getPKMProfile();
       if (data && (data.name || data.id || data.logo_url)) {
-          // IF WE HAVE LOCAL DATA, IGNORE SERVER (Prevent Overwrite)
-          if (hasLocalData) {
-             console.log('Server data valid, BUT ignoring to prevent local overwrite. Sync manually if needed.');
-             // Optional: Show a notification "Server data available"
-             return;
-          }
-
-          console.log('Server data valid, updating profile');
+          console.log('Server data loaded, updating state and local storage');
           setProfile(data);
           localStorage.setItem('pkm_profile_backup', JSON.stringify(data));
-      } else {
-          console.warn('Server returned empty profile, keeping local backup');
-          // ALERT FOR DIAGNOSIS
-          // alert('Peringatan: Data Profile di Server KOSONG. Menggunakan data lokal.');
+          localStorage.setItem('pkm_profile_permanent_v2', JSON.stringify(data));
       }
     } catch (error) {
-      console.log('Server fetch failed, sticking with backup');
+      console.log('Server fetch failed or empty, using local data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncFromServer = async () => {
+    if (confirm('Apakah Anda yakin ingin menarik data terbaru dari server?')) {
+      await loadProfile();
+      alert('Sinkronisasi selesai!');
     }
   };
 
@@ -155,6 +152,13 @@ export default function ProfileModule() {
         <span className="text-xs font-normal bg-green-100 text-green-800 px-2 py-1 rounded ml-2">
           DATA: {localStorage.getItem('pkm_profile_permanent_v2') ? 'LOKAL (HP)' : 'SERVER'}
         </span>
+        <button 
+          type="button"
+          onClick={handleSyncFromServer}
+          className="text-[10px] bg-amber-500 text-white px-3 py-1 rounded ml-auto hover:bg-amber-600 transition-colors uppercase font-black"
+        >
+          Tarik Data Server
+        </button>
       </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         

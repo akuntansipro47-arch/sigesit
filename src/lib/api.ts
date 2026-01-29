@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { Kelurahan, RW, RT, UserProfile, Profile, FamilyMember } from '@/types';
 import { mockApi } from './mockApi';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || localStorage.getItem('force_mock_mode') === 'true';
 // const USE_MOCK = true; // FORCE ON
 
 // Profile API
@@ -39,25 +39,19 @@ export const updatePKMProfile = async (profile: Partial<Profile>) => {
   // Since we want a SINGLETON, we must ensure ID is constant or we rely on 'ON CONFLICT'
   // But pkm_profile might not have a unique constraint on anything other than ID.
   
-  // Force ID to be '1' if it's missing, assuming pkm_profile is a singleton table
+  // Force a constant UUID for the singleton PKM profile if missing
+  // This ensures that different devices update the same record
+  const SINGLETON_ID = '00000000-0000-0000-0000-000000000001';
   const profileToSave = { ...profile };
-  if (!profileToSave.id) {
-     profileToSave.id = '1'; 
+  if (!profileToSave.id || profileToSave.id === '1') {
+     profileToSave.id = SINGLETON_ID; 
   }
 
-  if (profile.id) {
-      const { error } = await supabase.from('pkm_profile').update(profileToSave).eq('id', profile.id);
-      if (error) {
-         console.error("Update Error:", error);
-         alert(`Gagal menyimpan ke Server: ${error.message}`);
-         throw error;
-      }
-  } else {
-      // Fallback: This creates a new row if table is empty
-      // Try to upsert with hardcoded ID '1' to ensure future updates work
+  if (profileToSave.id) {
+      // Use UPSERT instead of update to handle the case where the record doesn't exist yet
       const { error } = await supabase.from('pkm_profile').upsert(profileToSave);
       if (error) {
-         console.error("Upsert Error:", error);
+         console.error("Save Error:", error);
          alert(`Gagal menyimpan ke Server: ${error.message}`);
          throw error;
       }
@@ -376,15 +370,15 @@ export const createEntry = async (entryData: any) => {
 export const createFamilyMembers = async (members: Partial<FamilyMember>[]) => {
   if (USE_MOCK) return mockApi.createFamilyMembers(members);
   
-  // Only send columns that exist in the DB schema to avoid "column not found" errors
+  // Strictly only send columns that exist in the DB schema
+  // total_souls, permanent_souls, and latrine_count are included as they are core metrics
   const cleanMembers = members.map((m: any) => ({
     entry_id: m.entry_id,
     kk_number: m.kk_number,
     head_of_family: m.head_of_family,
     total_souls: Number(m.total_souls || 0),
     permanent_souls: Number(m.permanent_souls || 0),
-    latrine_count: Number(m.latrine_count || 0),
-    is_auto_generated: !!m.is_auto_generated
+    latrine_count: Number(m.latrine_count || 0)
   }));
   
   const { data, error } = await supabase.from('family_members').insert(cleanMembers).select();
@@ -392,7 +386,7 @@ export const createFamilyMembers = async (members: Partial<FamilyMember>[]) => {
   return data;
 };
 
-export const getUserEntries = async (userId: string, isAdmin: boolean = false) => {
+export const getUserEntries = async (userId: string, isAdmin: boolean = false, dateFrom?: string, dateTo?: string) => {
   if (USE_MOCK) return mockApi.getUserEntries(userId);
   
   let query = supabase.from('entries')
@@ -408,6 +402,14 @@ export const getUserEntries = async (userId: string, isAdmin: boolean = false) =
   // Jika bukan admin, filter berdasarkan userId
   if (!isAdmin) {
     query = query.eq('user_id', userId);
+  }
+
+  // Filter Tanggal di Server (Supabase) untuk optimasi loading
+  if (dateFrom) {
+    query = query.gte('date_entry', dateFrom);
+  }
+  if (dateTo) {
+    query = query.lte('date_entry', dateTo);
   }
 
   const { data, error } = await query.order('created_at', { ascending: false });
@@ -431,6 +433,8 @@ export const getEntry = async (id: string) => {
   const { data, error } = await supabase.from('entries')
     .select(`
       *,
+      rw:rw_id(name),
+      rt:rt_id(name),
       family_members (*)
     `)
     .eq('id', id)
@@ -501,17 +505,23 @@ export const updateFamilyMembers = async (entryId: string, members: Partial<Fami
   const { error: deleteError } = await supabase.from('family_members').delete().eq('entry_id', entryId);
   if (deleteError) throw deleteError;
 
-  // Insert new - Only send columns that exist in the DB schema
+  // Insert new - Strictly only send columns that exist in the DB schema
   const cleanMembers = members.map((m: any) => ({
     entry_id: entryId,
     kk_number: m.kk_number,
     head_of_family: m.head_of_family,
     total_souls: Number(m.total_souls || 0),
     permanent_souls: Number(m.permanent_souls || 0),
-    latrine_count: Number(m.latrine_count || 0),
-    is_auto_generated: !!m.is_auto_generated
+    latrine_count: Number(m.latrine_count || 0)
   }));
 
   const { error: insertError } = await supabase.from('family_members').insert(cleanMembers);
-  if (insertError) throw insertError;
+  if (insertError) {
+    if (insertError.message.includes('column') && insertError.message.includes('does not exist')) {
+       throw new Error(`DATABASE ERROR: Kolom data jiwa/jamban belum ada di tabel family_members. 
+       
+SOLUSI: Harap jalankan perintah SQL ALTER TABLE di Supabase Editor.`);
+    }
+    throw insertError;
+  }
 };

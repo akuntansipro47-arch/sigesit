@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { createEntry, createFamilyMembers, getEntry, updateEntry, updateFamilyMembers, checkDuplicateKK } from '@/lib/api';
+import { createEntry, createFamilyMembers, getEntry, updateEntry, updateFamilyMembers, checkDuplicateKK, getKelurahans } from '@/lib/api';
 import { saveToOfflineQueue } from '@/lib/offline';
-import { Plus, Save, ArrowLeft, X, Check, Home, Trash2 } from 'lucide-react';
+import { Plus, Save, ArrowLeft, X, Check, Home, Trash2, MapPin } from 'lucide-react';
+import { Kelurahan } from '@/types';
 
 // --- Sub Components (Moved outside to prevent re-renders) ---
 // QuestionRow is kept memoized as it works fine
@@ -53,11 +54,12 @@ const QuestionRow = React.memo(({ name, label, checked, onChange, disabled }: { 
 // const TextAreaInput = ...
 
 export default function EntryForm() {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams(); // For Edit Mode
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [kelurahans, setKelurahans] = useState<Kelurahan[]>([]);
   
   // Removed unused state
   // const [rws, setRws] = useState<RW[]>([]);
@@ -142,6 +144,16 @@ export default function EntryForm() {
     { kk_number: '', head_of_family: '', total_souls: '', permanent_souls: '', latrine_count: '', no_kk_card: false }
   ]);
 
+  useEffect(() => {
+    if (profile) {
+      if (isAdmin) {
+        getKelurahans().then(setKelurahans);
+      } else {
+        setFormData((prev: any) => ({ ...prev, kelurahan_id: profile.kelurahan_id }));
+      }
+    }
+  }, [isAdmin, profile]);
+
   // Load Data for Editing
   useEffect(() => {
     if (id) {
@@ -152,12 +164,34 @@ export default function EntryForm() {
           setFormData((prev: any) => ({
             ...prev,
             ...data,
-            rw_id: String(data.rw_id),
-            rt_id: String(data.rt_id),
+            rw_id: data.rw?.name || String(data.rw_id),
+            rt_id: data.rt?.name || String(data.rt_id),
           }));
           
           if (data.family_members && data.family_members.length > 0) {
-            setFamilyMembers(data.family_members);
+            const mappedMembers = data.family_members.map((m: any, idx: number) => {
+              const member = { ...m, no_kk_card: !!m.is_auto_generated };
+              
+              // CEK APAKAH KOLOM INDIVIDU ADA (Bukan null/undefined)
+              const hasCol = m.total_souls !== undefined && m.total_souls !== null;
+              
+              if (!hasCol && idx === 0) {
+                // Jika kolom belum ada di DB (Data Lama), ambil dari total rumah ke KK pertama saja
+                member.total_souls = data.total_souls || '';
+                member.permanent_souls = data.permanent_souls || '';
+                member.latrine_count = data.latrine_count || '';
+              } else {
+                // Jika kolom sudah ada, gunakan datanya (meskipun 0)
+                // Jika m.total_souls null (tapi kolom ada), biarkan kosong
+                member.total_souls = m.total_souls ?? '';
+                member.permanent_souls = m.permanent_souls ?? '';
+                member.latrine_count = m.latrine_count ?? '';
+              }
+              
+              return member;
+            });
+            
+            setFamilyMembers(mappedMembers);
           }
           
           // Trigger fetch RTs - removed as we use manual input
@@ -275,6 +309,16 @@ export default function EntryForm() {
         const newMembers = [...prev];
         const member = { ...newMembers[index] };
 
+        // Numeric Validation for Jiwa, Menetap, Jamban
+        if (['total_souls', 'permanent_souls', 'latrine_count'].includes(field)) {
+            // Allow empty string, but if not empty, must be positive integer
+            if (value !== '') {
+                const numValue = parseInt(value);
+                if (isNaN(numValue) || numValue < 0) return prev; // Block non-numeric or negative
+                value = numValue;
+            }
+        }
+
         if (field === 'kk_number') {
             member.kk_number = value.replace(/\D/g, '').slice(0, 16);
         } else if (field === 'head_of_family') {
@@ -291,6 +335,17 @@ export default function EntryForm() {
             }
         } else {
             member[field] = value;
+        }
+
+        // Validation: Menetap <= Jiwa
+        if (field === 'permanent_souls' || field === 'total_souls') {
+            const souls = parseInt(member.total_souls) || 0;
+            const permanent = parseInt(member.permanent_souls) || 0;
+            
+            if (permanent > souls) {
+                alert('ERROR: Jumlah Jiwa Menetap tidak boleh lebih besar dari Total Jiwa!');
+                member.permanent_souls = souls;
+            }
         }
 
         newMembers[index] = member;
@@ -346,7 +401,7 @@ export default function EntryForm() {
       const entryData: any = {
         ...formData,
         user_id: profile.id,
-        kelurahan_id: profile.kelurahan_id,
+        kelurahan_id: formData.kelurahan_id || profile.kelurahan_id,
         total_souls: totalSouls,
         permanent_souls: permanentSouls,
         latrine_count: latrineCount,
@@ -361,9 +416,9 @@ export default function EntryForm() {
       const membersData = familyMembers.map(m => ({
         kk_number: m.kk_number,
         head_of_family: m.head_of_family,
-        total_souls: Number(m.total_souls || 0),
-        permanent_souls: Number(m.permanent_souls || 0),
-        latrine_count: Number(m.latrine_count || 0),
+        total_souls: m.total_souls === '' ? 0 : Number(m.total_souls),
+        permanent_souls: m.permanent_souls === '' ? 0 : Number(m.permanent_souls),
+        latrine_count: m.latrine_count === '' ? 0 : Number(m.latrine_count),
         is_auto_generated: !!m.no_kk_card
       }));
 
@@ -430,6 +485,30 @@ export default function EntryForm() {
             Data Umum
           </h3>
           <div className="space-y-4">
+            {isAdmin && (
+              <div className="bg-orange-50/50 p-5 rounded-2xl border border-orange-100 mb-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 bg-orange-500 text-white rounded-lg flex items-center justify-center">
+                    <MapPin size={14} />
+                  </div>
+                  <label className="block text-[10px] font-black text-orange-600 uppercase tracking-widest">Wilayah Kerja (Admin)</label>
+                </div>
+                <select
+                  value={formData.kelurahan_id || ''}
+                  onChange={(e) => handleFieldUpdate('kelurahan_id', e.target.value)}
+                  className="w-full border-2 border-orange-100 p-4 rounded-2xl focus:border-orange-500 outline-none transition-all font-black text-slate-700 bg-white shadow-inner appearance-none"
+                  required
+                >
+                  <option value="">PILIH KELURAHAN...</option>
+                  {kelurahans.map(k => (
+                    <option key={k.id} value={k.id}>{k.name}</option>
+                  ))}
+                </select>
+                <p className="mt-2 text-[9px] font-bold text-orange-400 italic leading-tight">
+                  * Khusus Super Admin: Anda dapat memilih wilayah Kelurahan secara manual sebelum menyimpan data survey.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <UncontrolledInput 
                 label="Tanggal Survey"
@@ -553,7 +632,8 @@ export default function EntryForm() {
                     <div className="space-y-1">
                       <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider text-center">Jiwa</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         value={member.total_souls} 
                         onChange={(e) => handleFamilyChange(idx, 'total_souls', e.target.value)}
                         className="w-full border-2 border-indigo-100 focus:border-indigo-500 rounded-xl p-3 text-center font-black text-lg text-indigo-700 bg-white shadow-inner"
@@ -564,7 +644,8 @@ export default function EntryForm() {
                     <div className="space-y-1">
                       <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider text-center">Menetap</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         value={member.permanent_souls} 
                         onChange={(e) => handleFamilyChange(idx, 'permanent_souls', e.target.value)}
                         className="w-full border-2 border-indigo-100 focus:border-indigo-500 rounded-xl p-3 text-center font-black text-lg text-indigo-700 bg-white shadow-inner"
@@ -575,7 +656,8 @@ export default function EntryForm() {
                     <div className="space-y-1">
                       <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider text-center">Jamban</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         value={member.latrine_count} 
                         onChange={(e) => handleFamilyChange(idx, 'latrine_count', e.target.value)}
                         className="w-full border-2 border-indigo-100 focus:border-indigo-500 rounded-xl p-3 text-center font-black text-lg text-indigo-700 bg-white shadow-inner"

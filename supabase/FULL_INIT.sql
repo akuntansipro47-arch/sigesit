@@ -148,6 +148,9 @@ alter table public.family_members enable row level security;
 
 -- 11. Buat Kebijakan Akses (Policies)
 create policy "Public read pkm_profile" on public.pkm_profile for select using (true);
+create policy "Admin manage pkm_profile" on public.pkm_profile for all using (
+  auth.uid() in (select id from public.user_profiles where role ilike '%admin%')
+);
 create policy "Public read kelurahan" on public.kelurahan for select using (true);
 create policy "Public read rw" on public.rw for select using (true);
 create policy "Public read rt" on public.rt for select using (true);
@@ -169,8 +172,8 @@ create policy "Admin read family_members" on public.family_members for select us
 create policy "Kader manage own family_members" on public.family_members for all using (exists (select 1 from public.entries where id = public.family_members.entry_id and user_id = auth.uid()));
 
 -- 12. Masukkan Data Awal PKM
-insert into public.pkm_profile (name, address) 
-select 'PKM PADASUKA', 'Kota Cimahi' 
+insert into public.pkm_profile (id, name, address) 
+select '00000000-0000-0000-0000-000000000001', 'PKM PADASUKA', 'Kota Cimahi' 
 where not exists (select 1 from public.pkm_profile);
 
 -- 13. HUBUNGKAN ADMIN (Fix User Profile)

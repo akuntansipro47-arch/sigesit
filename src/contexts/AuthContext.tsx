@@ -123,8 +123,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    localStorage.removeItem('force_mock_mode');
+    localStorage.removeItem('mock_session');
+    
     if (USE_MOCK) {
-      localStorage.removeItem('mock_session');
       setUser(null);
       setProfile(null);
       return;
@@ -149,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin: profile?.role?.toLowerCase().includes('admin') || false,
     isKader: profile?.role?.toLowerCase() === 'kader' || false,
     mockLogin,
-    isMock: USE_MOCK
+    isMock: USE_MOCK || localStorage.getItem('force_mock_mode') === 'true'
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

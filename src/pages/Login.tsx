@@ -30,12 +30,16 @@ export default function Login() {
     const loadLogo = async () => {
       try {
         const data = await getPKMProfile();
+        // If data from API exists, use it. Otherwise, fallback to /logo-sigesit.png
         if (data && data.logo_url) {
            setLogoUrl(data.logo_url);
            localStorage.setItem('pkm_profile_backup', JSON.stringify(data));
+        } else {
+           setLogoUrl('/logo-sigesit.png');
         }
       } catch (e) {
         console.error("Failed to update logo from API", e);
+        setLogoUrl('/logo-sigesit.png');
       }
     };
     loadLogo();
@@ -73,6 +77,35 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // SPECIAL DEMO LOGIN (For Presentation)
+      if (username.toLowerCase() === 'demo' && password === 'demo123') {
+        const demoProfile = {
+          id: 'demo-user-id',
+          nik: 'DEMO123456',
+          name: 'Sigesit Demo Account',
+          phone: '08123456789',
+          username: 'demo',
+          role: 'super_admin', // Full access for demo
+          is_active: true
+        };
+        const demoSession = {
+          user: { id: 'demo-user-id', email: 'demo@sigesit.com' },
+          profile: demoProfile
+        };
+        localStorage.setItem('mock_session', JSON.stringify(demoSession));
+        localStorage.setItem('force_mock_mode', 'true');
+        window.location.reload(); // Refresh to trigger mock mode in AuthProvider
+        return;
+      }
+
+      if (isMock && !(username.toLowerCase() === 'demo' && password === 'demo123')) {
+        // If we are in mock mode but trying a real login, clear mock mode
+        localStorage.removeItem('force_mock_mode');
+        localStorage.removeItem('mock_session');
+        window.location.reload();
+        return;
+      }
+
       if (isMock) {
         await mockLogin(username);
         return;
@@ -181,23 +214,35 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
   }, [isMock]);
 
   return (
-    <div className="min-h-screen flex flex-col justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 overflow-y-auto w-full">
-      <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto my-8 border border-white/50 transform scale-100 sm:scale-100 origin-top">
+    <div className="min-h-screen flex flex-col justify-center bg-[#f8fafc] p-4 overflow-y-auto w-full relative">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-50/30 rounded-full blur-3xl pointer-events-none -mb-48 -mr-48"></div>
+      
+      <div className="bg-white/90 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl shadow-blue-100/50 w-full max-w-md mx-auto my-8 border border-white relative z-10 transform scale-100 sm:scale-100 origin-top">
         <div className="text-center mb-8">
-          {logoUrl && (
-            <div className="flex justify-center mb-4 drop-shadow-md">
-              <img src={logoUrl} alt="Logo PKM" className="h-24 object-contain" />
+          <div className="flex justify-center mb-6">
+            <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl border-4 border-blue-500/20 flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-blue-50">
+              <img 
+                src={logoUrl || '/logo-sigesit.png'} 
+                alt="Logo SIGESIT" 
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://raw.githubusercontent.com/akuntansipro47-arch/sigesit/master/public/logo-sigesit.png'; // Fallback if local not found
+                }}
+              />
             </div>
-          )}
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">SIGESIT SANDAS</h1>
+          </div>
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">SIGESIT SADAKELING</h1>
           <p className="text-blue-600/70 font-medium">PKM PADASUKA - KOTA CIMAHI</p>
           <div className="mt-4 flex flex-col items-center gap-2">
-            <div className="inline-block bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-blue-200 animate-pulse border border-white/20">
-              V4.2 PREMIUM
+            <div className="inline-block bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-emerald-200 animate-pulse border border-white/20">
+              V4.2.8 PREMIUM
             </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
-              Deploy: {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+              Update Terakhir: 29 Jan 2026 | 18:15 WIB
             </div>
           </div>
         </div>

@@ -157,6 +157,9 @@ alter table family_members enable row level security;
 
 -- Policies
 create policy "Public read pkm_profile" on pkm_profile for select using (true);
+create policy "Admin manage pkm_profile" on pkm_profile for all using (
+  auth.uid() in (select id from user_profiles where role ilike '%admin%')
+);
 create policy "Public read kelurahan" on kelurahan for select using (true);
 create policy "Public read rw" on rw for select using (true);
 create policy "Public read rt" on rt for select using (true);
@@ -233,6 +236,6 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- Insert initial PKM Profile if empty
-insert into pkm_profile (name, address)
-select 'PKM PADASUKA', 'Kota Cimahi'
+insert into pkm_profile (id, name, address)
+select '00000000-0000-0000-0000-000000000001', 'PKM PADASUKA', 'Kota Cimahi'
 where not exists (select 1 from pkm_profile);

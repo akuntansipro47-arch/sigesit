@@ -27,11 +27,28 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+    <div className="flex h-screen bg-[#f1f5f9]">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-xl hidden md:flex flex-col border-r border-blue-100">
-        <div className="p-6 border-b border-blue-50 bg-gradient-to-b from-blue-50/50 to-transparent">
-          <h2 className="text-2xl font-black text-blue-600 tracking-tighter">SIGESIT</h2>
+      <div className="w-64 bg-white shadow-2xl hidden md:flex flex-col border-r border-slate-200">
+        <div className="p-6 border-b border-blue-50 bg-gradient-to-b from-blue-50/50 to-transparent flex flex-col items-center">
+          <div className="w-20 h-20 bg-white rounded-full p-1 shadow-md border-2 border-blue-100 flex items-center justify-center overflow-hidden mb-3">
+             <img 
+               src={(() => {
+                 try {
+                   const saved = localStorage.getItem('pkm_profile_permanent_v2');
+                   const parsed = saved ? JSON.parse(saved) : null;
+                   return parsed?.logo_url || '/logo-sigesit.png';
+                 } catch { return '/logo-sigesit.png'; }
+               })()} 
+               className="h-full w-full object-contain" 
+               alt="Logo"
+               onError={(e) => {
+                 const target = e.target as HTMLImageElement;
+                 target.src = '/logo-sigesit.png';
+               }}
+             />
+          </div>
+          <h2 className="text-xl font-black text-blue-600 tracking-tighter leading-tight text-center">SIGESIT SADAKELING</h2>
           <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">Super Admin Panel</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
@@ -65,7 +82,7 @@ export default function AdminDashboard() {
         </div>
         <div className="p-4 text-center text-[9px] text-slate-400 border-t border-blue-50 bg-slate-50/50 font-medium">
            <p>&copy; 2026 akuntansipro.com</p>
-           <p className="mt-0.5 text-blue-400/60">Sigesit Sandas v4.0</p>
+           <p className="mt-0.5 text-blue-400/60 uppercase">Sigesit Sadakeling v4.3</p>
         </div>
       </div>
 
@@ -74,21 +91,26 @@ export default function AdminDashboard() {
         <header className="bg-white/80 backdrop-blur-md shadow-sm p-4 md:hidden flex justify-between items-center sticky top-0 z-10 border-b border-blue-100">
           <div className="flex items-center gap-3">
             {/* Logo from LocalStorage V2 (Fastest) */}
-            <div className="bg-blue-50 p-1 rounded-lg">
+            <div className="bg-white p-1 rounded-full shadow-md border border-blue-100 w-10 h-10 flex items-center justify-center overflow-hidden">
               <img 
                  src={(() => {
                    try {
                      const saved = localStorage.getItem('pkm_profile_permanent_v2');
-                     return saved ? JSON.parse(saved).logo_url : null;
-                   } catch { return null; }
-                 })() || '/vite.svg'} 
-                 className="h-8 w-8 object-contain" 
+                     const parsed = saved ? JSON.parse(saved) : null;
+                     return parsed?.logo_url || '/logo-sigesit.png';
+                   } catch { return '/logo-sigesit.png'; }
+                 })()} 
+                 className="h-full w-full object-contain" 
                  alt="Logo"
+                 onError={(e) => {
+                   const target = e.target as HTMLImageElement;
+                   target.src = '/logo-sigesit.png';
+                 }}
               />
             </div>
             <div>
-               <h2 className="font-black text-blue-600 text-sm tracking-tight">SIGESIT ADMIN</h2>
-               <p className="text-[9px] font-bold text-slate-400 uppercase">PUSKESMAS PADASUKA</p>
+               <h2 className="font-black text-blue-600 text-sm tracking-tight">SIGESIT SADAKELING</h2>
+               <p className="text-[9px] font-bold text-slate-400 uppercase text-center">PUSKESMAS PADASUKA</p>
             </div>
           </div>
           <button onClick={handleLogout} className="text-rose-500 p-2 hover:bg-rose-50 rounded-full transition-colors">
@@ -118,7 +140,7 @@ export default function AdminDashboard() {
           </div>
           <div className="mt-12 text-center text-[10px] text-slate-400 md:hidden pb-4">
               <p>&copy; 2026 akuntansipro.com</p>
-              <p className="mt-1 text-blue-400/60 font-bold tracking-widest uppercase">SIGESIT SANDAS</p>
+              <p className="mt-1 text-blue-400/60 font-bold tracking-widest uppercase">SIGESIT SADAKELING</p>
            </div>
         </main>
       </div>
