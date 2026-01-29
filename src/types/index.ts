@@ -38,7 +38,7 @@ export interface UserProfile {
   rt_id?: number;
   username: string;
   password_display?: string;
-  role: 'admin' | 'kader';
+  role: 'admin' | 'kader' | 'super_admin';
   is_active: boolean;
 }
 

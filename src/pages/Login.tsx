@@ -242,11 +242,11 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
           {/* VERSION BADGE */}
           <div className="mt-4 flex flex-col items-center gap-2">
             <div className="inline-block bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-emerald-200 animate-pulse border border-white/20">
-              V4.4.1 FORCE UPDATE
+              V4.4.2 FORCE UPDATE
             </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 29 Jan 2026 | 20:00 WIB
+              Update Terakhir: 30 Jan 2026 | 08:30 WIB
             </div>
             <button 
               onClick={handleHardReset}
@@ -321,7 +321,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
       </div>
       
       <div className="text-center mt-8 text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.1</p>
+        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.2</p>
         <p>info@akuntansipro.com</p>
       </div>
     </div>

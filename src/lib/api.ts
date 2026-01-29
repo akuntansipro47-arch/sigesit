@@ -339,7 +339,7 @@ export const createEntry = async (entryData: any) => {
   if (USE_MOCK) return mockApi.createEntry(entryData);
 
   // Strip out joined data that aren't columns in 'entries' table
-  const { family_members, kelurahan, rw, rt, kader, ...cleanData } = entryData;
+  const { family_members: _fm, kelurahan: _k, rw: _rw, rt: _rt, kader: _kd, ...cleanData } = entryData;
   
   try {
     let finalRwId = cleanData.rw_id;
@@ -459,7 +459,7 @@ export const updateEntry = async (id: string, entryData: any) => {
   }
 
   // Strip out joined data that aren't columns in 'entries' table
-  const { family_members, kelurahan, rw, rt, kader, ...cleanData } = entryData;
+  const { family_members: _fm, kelurahan: _k, rw: _rw, rt: _rt, kader: _kd, ...cleanData } = entryData;
 
   try {
     let finalRwId = cleanData.rw_id;
