@@ -13,7 +13,7 @@ function App() {
   // Force reload if version mismatch (Simple cache buster)
   useEffect(() => {
     const lastVersion = localStorage.getItem('app_version');
-    const currentVersion = '4.3.0'; // Increment this manually on deploy
+    const currentVersion = '4.3.5'; // Force new version to break cache
     if (lastVersion && lastVersion !== currentVersion) {
       console.log('New version detected, updating...');
       localStorage.setItem('app_version', currentVersion);
