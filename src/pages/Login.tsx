@@ -190,37 +190,71 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
     }
   }, [isMock]);
 
+  const handleHardReset = async () => {
+    if (confirm('Aplikasi akan di-reset total untuk memperbaiki masalah update. Lanjutkan?')) {
+      // 1. Unregister Service Workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
+      // 2. Clear Cache Storage
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(key => caches.delete(key)));
+      }
+
+      // 3. Clear Local Storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // 4. Force Reload with timestamp
+      window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col justify-center bg-[#f8fafc] p-4 overflow-y-auto w-full relative">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-50/30 rounded-full blur-3xl pointer-events-none -mb-48 -mr-48"></div>
-      
-      <div className="bg-white/90 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl shadow-blue-100/50 w-full max-w-md mx-auto my-8 border border-white relative z-10 transform scale-100 sm:scale-100 origin-top">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-100/50 rounded-full blur-3xl opacity-60"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-teal-100/50 rounded-full blur-3xl opacity-60"></div>
+      </div>
+
+      <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] w-full max-w-md border border-white/50 relative z-10">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl border-4 border-blue-500/20 flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-blue-50">
-              <img 
-                src={logoUrl || '/logo-sigesit.png'} 
-                alt="Logo SIGESIT" 
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'https://raw.githubusercontent.com/akuntansipro47-arch/sigesit/master/public/logo-sigesit.png'; // Fallback if local not found
-                }}
-              />
-            </div>
+          <div className="bg-gradient-to-tr from-blue-600 to-teal-500 w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200 transform hover:scale-105 transition-transform duration-300">
+             {/* Dynamic Logo from Realtime Context */}
+             <img 
+               src={logoUrl || '/logo-sigesit.png'} 
+               alt="Logo" 
+               className="w-16 h-16 object-contain brightness-0 invert drop-shadow-md"
+               onError={(e) => {
+                 const target = e.target as HTMLImageElement;
+                 target.src = '/logo-sigesit.png';
+               }} 
+             />
           </div>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">SIGESIT SADAKELING</h1>
-          <p className="text-blue-600/70 font-medium">PKM PADASUKA - KOTA CIMAHI</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-2">SIGESIT</h1>
+          <p className="text-slate-500 font-medium text-sm tracking-wide">Sistem Informasi Kesehatan Lingkungan</p>
+          
+          {/* VERSION BADGE */}
           <div className="mt-4 flex flex-col items-center gap-2">
             <div className="inline-block bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-emerald-200 animate-pulse border border-white/20">
-              V4.4.0 PREMIUM
+              V4.4.1 FORCE UPDATE
             </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 29 Jan 2026 | 19:45 WIB
+              Update Terakhir: 29 Jan 2026 | 20:00 WIB
             </div>
+            <button 
+              onClick={handleHardReset}
+              className="mt-2 text-[9px] font-bold text-rose-500 hover:text-rose-600 underline decoration-dotted cursor-pointer"
+            >
+              [ KLIK DISINI JIKA APLIKASI MACET / TIDAK UPDATE ]
+            </button>
           </div>
         </div>
 
