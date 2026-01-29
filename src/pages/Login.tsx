@@ -321,7 +321,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
       </div>
       
       <div className="text-center mt-8 text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.2</p>
+        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.1</p>
         <p>info@akuntansipro.com</p>
       </div>
     </div>
