@@ -219,7 +219,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
             </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 29 Jan 2026 | 18:45 WIB
+              Update Terakhir: 29 Jan 2026 | 19:15 WIB
             </div>
           </div>
         </div>

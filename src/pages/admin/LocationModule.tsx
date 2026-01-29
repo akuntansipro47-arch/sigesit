@@ -186,6 +186,9 @@ export default function LocationModule() {
           setNewRW({ name: item.name, kelurahan_id: String(item.kelurahan_id) });
       } else if (type === 'rt') {
           setEditingRTId(item.id);
+          // Set Kelurahan filter first so RW list is available
+          const kelId = (item as any).rw?.kelurahan_id;
+          if (kelId) setSelectedKelurahanForRT(String(kelId));
           setNewRT({ name: item.name, rw_id: String(item.rw_id) });
       }
   };
@@ -218,6 +221,22 @@ export default function LocationModule() {
     const index = (idNum * 7) % colors.length; // Multiply by 7 (prime) to jump across the color list
     return colors[index];
   };
+
+  // Filtering logic for RW list
+  const filteredRWs = newRW.kelurahan_id 
+    ? rws.filter(r => String(r.kelurahan_id) === newRW.kelurahan_id)
+    : rws;
+
+  // Filtering logic for RT list
+  const filteredRTs = rts.filter(rt => {
+    const matchesKelurahan = selectedKelurahanForRT 
+      ? String((rt as any).rw?.kelurahan_id) === selectedKelurahanForRT 
+      : true;
+    const matchesRW = newRT.rw_id 
+      ? String(rt.rw_id) === newRT.rw_id 
+      : true;
+    return matchesKelurahan && matchesRW;
+  });
 
   return (
     <div className="space-y-10 pb-20">
@@ -307,9 +326,9 @@ export default function LocationModule() {
             </div>
           </form>
           <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            {rws.length === 0 && <p className="text-slate-400 text-sm text-center py-10 italic">Belum ada data RW</p>}
+            {filteredRWs.length === 0 && <p className="text-slate-400 text-sm text-center py-10 italic">Belum ada data RW {newRW.kelurahan_id ? 'di Kelurahan ini' : ''}</p>}
             <ul className="space-y-3">
-              {rws.map(r => (
+              {filteredRWs.map(r => (
                 <li key={r.id} className={`flex justify-between items-center border-2 p-4 rounded-2xl shadow-sm transition-transform hover:scale-[1.02] ${getGroupColor(r.kelurahan_id)}`}>
                   <div>
                     <span className="font-black tracking-tight text-lg">RW {r.name}</span>
@@ -381,9 +400,9 @@ export default function LocationModule() {
           </form>
 
           <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            {rts.length === 0 && <p className="text-slate-400 text-sm text-center py-10 italic">Belum ada data RT</p>}
+            {filteredRTs.length === 0 && <p className="text-slate-400 text-sm text-center py-10 italic">Belum ada data RT {selectedKelurahanForRT || newRT.rw_id ? 'di wilayah ini' : ''}</p>}
             <ul className="space-y-3">
-              {rts.map(r => (
+              {filteredRTs.map(r => (
                 <li key={r.id} className={`flex justify-between items-center border-2 p-4 rounded-2xl shadow-sm transition-transform hover:scale-[1.02] ${getGroupColor(r.rw_id)}`}>
                   <div>
                     <span className="font-black tracking-tight text-lg">RT {r.name}</span>
