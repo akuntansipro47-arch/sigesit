@@ -89,7 +89,7 @@ export default function EntryDashboard() {
                 <img 
                   src={(() => {
                     try {
-                      const saved = localStorage.getItem('pkm_profile_permanent_v2');
+                      const saved = localStorage.getItem('pkm_profile_v1');
                       const parsed = saved ? JSON.parse(saved) : null;
                       return parsed?.logo_url || '/logo-sigesit.png';
                     } catch { return '/logo-sigesit.png'; }

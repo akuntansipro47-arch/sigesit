@@ -6,7 +6,7 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || localStorage.getIte
 // const USE_MOCK = true; // FORCE ON
 
 // Profile API
-export const getPKMProfile = async () => {
+export const getPKMProfile = async (skipFallback: boolean = false) => {
   if (USE_MOCK) return mockApi.getPKMProfile();
   
   try {
@@ -14,9 +14,11 @@ export const getPKMProfile = async () => {
     if (error) throw error;
     return data as Profile;
   } catch (error) {
+    if (skipFallback) throw error;
+    
     console.warn("Supabase fetch failed, trying localStorage backup...", error);
     // Fallback to localStorage
-    const backup = localStorage.getItem('pkm_profile_backup');
+    const backup = localStorage.getItem('pkm_profile_v1');
     if (backup) {
       return JSON.parse(backup) as Profile;
     }

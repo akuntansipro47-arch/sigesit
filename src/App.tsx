@@ -5,6 +5,7 @@ import AdminDashboard from './pages/admin/Dashboard'
 import EntryDashboard from './pages/entry/EntryDashboard'
 import { useEffect } from 'react'
 import { processOfflineQueue } from './lib/offline'
+import { getPKMProfile } from './lib/api'
 
 function App() {
   const { profile, loading, isAdmin } = useAuth()
@@ -12,7 +13,7 @@ function App() {
   // Force reload if version mismatch (Simple cache buster)
   useEffect(() => {
     const lastVersion = localStorage.getItem('app_version');
-    const currentVersion = '4.2.8'; // Increment this manually on deploy
+    const currentVersion = '4.2.9'; // Increment this manually on deploy
     if (lastVersion && lastVersion !== currentVersion) {
       console.log('New version detected, updating...');
       localStorage.setItem('app_version', currentVersion);
@@ -20,6 +21,21 @@ function App() {
     } else if (!lastVersion) {
       localStorage.setItem('app_version', currentVersion);
     }
+  }, []);
+
+  // Sync PKM Profile on App Load
+  useEffect(() => {
+    const syncPKM = async () => {
+      try {
+        const data = await getPKMProfile(true); // Force fetch from server
+        if (data) {
+          localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
+        }
+      } catch (e) {
+        console.warn("PKM Sync failed, using local", e);
+      }
+    };
+    syncPKM();
   }, []);
 
   // Process offline queue on app load

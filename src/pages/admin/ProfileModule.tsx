@@ -7,23 +7,19 @@ export default function ProfileModule() {
   const [profile, setProfile] = useState<Partial<Profile>>({});
   const [loading, setLoading] = useState(false);
 
-  // Auto-save draft on every change
   useEffect(() => {
      if (profile && Object.keys(profile).length > 0) {
-        // FORCE KEY: 'pkm_profile_permanent_v2' to avoid conflicts
-        localStorage.setItem('pkm_profile_permanent_v2', JSON.stringify(profile));
+        localStorage.setItem('pkm_profile_v1', JSON.stringify(profile));
      }
   }, [profile]);
 
   useEffect(() => {
-    // 1. Show local data immediately for fast UI
-    const committed = localStorage.getItem('pkm_profile_backup');
-    const permanent = localStorage.getItem('pkm_profile_permanent_v2');
+    // 1. Try to load committed backup first
+    const committed = localStorage.getItem('pkm_profile_v1');
     
-    if (permanent) {
-       setProfile(JSON.parse(permanent));
-    } else if (committed) {
-      setProfile(JSON.parse(committed));
+    // PRIORITY: LOCAL DATA WINS ON MOUNT (Fast UI)
+    if (committed) {
+       setProfile(JSON.parse(committed));
     }
     
     // 2. ALWAYS fetch fresh data from server on mount
@@ -31,26 +27,37 @@ export default function ProfileModule() {
   }, []);
 
   const loadProfile = async () => {
-    setLoading(true);
     try {
-      const data = await getPKMProfile();
+      // Force fresh fetch from server (skipFallback = true)
+      const data = await getPKMProfile(true);
       if (data && (data.name || data.id || data.logo_url)) {
-          console.log('Server data loaded, updating state and local storage');
+          console.log('Server data valid, updating profile');
           setProfile(data);
-          localStorage.setItem('pkm_profile_backup', JSON.stringify(data));
-          localStorage.setItem('pkm_profile_permanent_v2', JSON.stringify(data));
+          localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
       }
     } catch (error) {
-      console.log('Server fetch failed or empty, using local data');
-    } finally {
-      setLoading(false);
+      console.log('Server fetch failed or empty, sticking with backup');
     }
   };
 
   const handleSyncFromServer = async () => {
     if (confirm('Apakah Anda yakin ingin menarik data terbaru dari server?')) {
-      await loadProfile();
-      alert('Sinkronisasi selesai!');
+      setLoading(true);
+      try {
+        const data = await getPKMProfile(true); // Force server fetch
+        if (data) {
+          setProfile(data);
+          localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
+          alert('Berhasil menarik data dari server!');
+        } else {
+          alert('Data di server kosong.');
+        }
+      } catch (error) {
+        console.error("Sync Error:", error);
+        alert('Gagal menarik data dari server. Periksa koneksi atau izin (RLS).');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -150,7 +157,7 @@ export default function ProfileModule() {
         <ImageIcon className="text-blue-600" />
         Profile PKM
         <span className="text-xs font-normal bg-green-100 text-green-800 px-2 py-1 rounded ml-2">
-          DATA: {localStorage.getItem('pkm_profile_permanent_v2') ? 'LOKAL (HP)' : 'SERVER'}
+          DATA: {localStorage.getItem('pkm_profile_v1') ? 'SINKRON' : 'BARU'}
         </span>
         <button 
           type="button"
