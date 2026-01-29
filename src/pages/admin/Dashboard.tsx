@@ -9,7 +9,7 @@ import EntryList from '../entry/EntryList';
 import ReportDashboard from '../entry/ReportDashboard';
 
 export default function AdminDashboard() {
-  const { signOut } = useAuth();
+  const { signOut, pkmProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,13 +33,7 @@ export default function AdminDashboard() {
         <div className="p-6 border-b border-blue-50 bg-gradient-to-b from-blue-50/50 to-transparent flex flex-col items-center">
           <div className="w-20 h-20 bg-white rounded-full p-1 shadow-md border-2 border-blue-100 flex items-center justify-center overflow-hidden mb-3">
              <img 
-               src={(() => {
-                 try {
-                   const saved = localStorage.getItem('pkm_profile_v1');
-                   const parsed = saved ? JSON.parse(saved) : null;
-                   return parsed?.logo_url || '/logo-sigesit.png';
-                 } catch { return '/logo-sigesit.png'; }
-               })()} 
+               src={pkmProfile?.logo_url || '/logo-sigesit.png'} 
                className="h-full w-full object-contain" 
                alt="Logo"
                onError={(e) => {
@@ -90,16 +84,10 @@ export default function AdminDashboard() {
       <div className="flex-1 overflow-auto pb-20 md:pb-0">
         <header className="bg-white/80 backdrop-blur-md shadow-sm p-4 md:hidden flex justify-between items-center sticky top-0 z-10 border-b border-blue-100">
           <div className="flex items-center gap-3">
-            {/* Logo from LocalStorage V2 (Fastest) */}
+            {/* Logo from Context (Realtime) */}
             <div className="bg-white p-1 rounded-full shadow-md border border-blue-100 w-10 h-10 flex items-center justify-center overflow-hidden">
               <img 
-                 src={(() => {
-                   try {
-                     const saved = localStorage.getItem('pkm_profile_v1');
-                     const parsed = saved ? JSON.parse(saved) : null;
-                     return parsed?.logo_url || '/logo-sigesit.png';
-                   } catch { return '/logo-sigesit.png'; }
-                 })()} 
+                 src={pkmProfile?.logo_url || '/logo-sigesit.png'} 
                  className="h-full w-full object-contain" 
                  alt="Logo"
                  onError={(e) => {

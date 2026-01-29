@@ -12,38 +12,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('');
   const navigate = useNavigate();
-  const { profile, session, mockLogin, isMock } = useAuth();
+  const { profile, session, mockLogin, isMock, pkmProfile } = useAuth();
 
   useEffect(() => {
-    // 1. Try to load from local storage FIRST for instant UI on mobile
-    const backup = localStorage.getItem('pkm_profile_v1');
-    if (backup) {
-      try {
-        const parsed = JSON.parse(backup);
-        if (parsed.logo_url) setLogoUrl(parsed.logo_url);
-      } catch (e) {
-        console.warn("Initial logo backup load failed", e);
-      }
+    if (pkmProfile?.logo_url) {
+      setLogoUrl(pkmProfile.logo_url);
+    } else {
+      setLogoUrl('/logo-sigesit.png');
     }
-
-    // 2. Then update from API in background
-    const loadLogo = async () => {
-      try {
-        const data = await getPKMProfile(true); // Force fresh fetch
-        // If data from API exists, use it. Otherwise, fallback to /logo-sigesit.png
-        if (data && data.logo_url) {
-           setLogoUrl(data.logo_url);
-           localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
-        } else {
-           setLogoUrl('/logo-sigesit.png');
-        }
-      } catch (e) {
-        console.error("Failed to update logo from API", e);
-        setLogoUrl('/logo-sigesit.png');
-      }
-    };
-    loadLogo();
-  }, []);
+  }, [pkmProfile]);
 
   // Redirect if already logged in
   React.useEffect(() => {
@@ -238,11 +215,11 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
           <p className="text-blue-600/70 font-medium">PKM PADASUKA - KOTA CIMAHI</p>
           <div className="mt-4 flex flex-col items-center gap-2">
             <div className="inline-block bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-emerald-200 animate-pulse border border-white/20">
-              V4.2.9 PREMIUM
+              V4.3.0 PREMIUM
             </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 29 Jan 2026 | 18:35 WIB
+              Update Terakhir: 29 Jan 2026 | 18:45 WIB
             </div>
           </div>
         </div>

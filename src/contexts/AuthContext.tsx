@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { UserProfile } from '@/types';
+import { UserProfile, Profile } from '@/types';
 import { mockApi } from '@/lib/mockApi';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  pkmProfile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
   isAdmin: boolean;
@@ -19,13 +20,57 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-// const USE_MOCK = true; // FORCE ON
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [pkmProfile, setPkmProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Load PKM Profile & Subscribe to Realtime
+  useEffect(() => {
+    // 1. Load initial from local storage
+    const localPkm = localStorage.getItem('pkm_profile_v1');
+    if (localPkm) {
+      try {
+        setPkmProfile(JSON.parse(localPkm));
+      } catch (e) {
+        console.error('Error parsing local PKM profile', e);
+      }
+    }
+
+    // 2. Fetch from server
+    const fetchPkm = async () => {
+      const { data, error } = await supabase.from('pkm_profile').select('*').single();
+      if (data) {
+        setPkmProfile(data);
+        localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
+      }
+    };
+    fetchPkm();
+
+    // 3. Subscribe to REALTIME updates
+    const channel = supabase
+      .channel('pkm_profile_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pkm_profile' },
+        (payload) => {
+          console.log('PKM Profile Realtime Update:', payload);
+          if (payload.new) {
+            const newProfile = payload.new as Profile;
+            setPkmProfile(newProfile);
+            localStorage.setItem('pkm_profile_v1', JSON.stringify(newProfile));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     // FORCE BYPASS - Cek localstorage langsung
@@ -146,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     user,
     profile,
+    pkmProfile,
     loading,
     signOut,
     isAdmin: profile?.role?.toLowerCase().includes('admin') || false,

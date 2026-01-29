@@ -7,7 +7,7 @@ import ReportDashboard from './ReportDashboard';
 import { useState, useEffect, useRef } from 'react';
 
 export default function EntryDashboard() {
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, pkmProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
@@ -87,13 +87,7 @@ export default function EntryDashboard() {
              </button>
              <div className="bg-white p-1 rounded-full shadow-lg border-2 border-white/50 w-12 h-12 flex items-center justify-center overflow-hidden">
                 <img 
-                  src={(() => {
-                    try {
-                      const saved = localStorage.getItem('pkm_profile_v1');
-                      const parsed = saved ? JSON.parse(saved) : null;
-                      return parsed?.logo_url || '/logo-sigesit.png';
-                    } catch { return '/logo-sigesit.png'; }
-                  })()} 
+                  src={pkmProfile?.logo_url || '/logo-sigesit.png'} 
                   className="h-full w-full object-contain" 
                   alt="Logo"
                   onError={(e) => {

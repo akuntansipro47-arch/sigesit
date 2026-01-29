@@ -8,34 +8,27 @@ import { processOfflineQueue } from './lib/offline'
 import { getPKMProfile } from './lib/api'
 
 function App() {
-  const { profile, loading, isAdmin } = useAuth()
+  const { profile, loading, isAdmin, pkmProfile } = useAuth()
 
   // Force reload if version mismatch (Simple cache buster)
   useEffect(() => {
     const lastVersion = localStorage.getItem('app_version');
-    const currentVersion = '4.2.9'; // Increment this manually on deploy
+    const currentVersion = '4.3.0'; // Increment this manually on deploy
     if (lastVersion && lastVersion !== currentVersion) {
       console.log('New version detected, updating...');
       localStorage.setItem('app_version', currentVersion);
+      // Force clear all caches for major update
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
       window.location.reload();
     } else if (!lastVersion) {
       localStorage.setItem('app_version', currentVersion);
     }
-  }, []);
-
-  // Sync PKM Profile on App Load
-  useEffect(() => {
-    const syncPKM = async () => {
-      try {
-        const data = await getPKMProfile(true); // Force fetch from server
-        if (data) {
-          localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
-        }
-      } catch (e) {
-        console.warn("PKM Sync failed, using local", e);
-      }
-    };
-    syncPKM();
   }, []);
 
   // Process offline queue on app load
