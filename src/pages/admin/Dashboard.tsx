@@ -21,7 +21,7 @@ export default function AdminDashboard() {
   const navItems = [
     { path: '/admin/profile', label: 'Profile PKM', icon: Building },
     { path: '/admin/locations', label: 'Data Wilayah', icon: MapPin },
-    { path: '/admin/users', label: 'Data Kader', icon: Users },
+    { path: '/admin/users', label: 'Pengaturan Akses', icon: Users },
     { path: '/admin/entry', label: 'Data Entry (Survey)', icon: ClipboardList },
     { path: '/admin/report', label: 'Laporan & Statistik', icon: BarChart2 },
   ];

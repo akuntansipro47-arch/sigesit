@@ -19,7 +19,8 @@ export default function UsersModule() {
     phone: '',
     kelurahan_id: '',
     rw_id: '',
-    rt_id: ''
+    rt_id: '',
+    role: 'kader' as 'kader' | 'super_admin'
   });
   
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -99,9 +100,10 @@ export default function UsersModule() {
       nik: user.nik,
       name: user.name,
       phone: user.phone || '',
-      kelurahan_id: String(user.kelurahan_id),
-      rw_id: String(user.rw_id),
-      rt_id: String(user.rt_id)
+      kelurahan_id: String(user.kelurahan_id || ''),
+      rw_id: String(user.rw_id || ''),
+      rt_id: String(user.rt_id || ''),
+      role: user.role || 'kader'
     });
     setPasswordInput('');
     setShowForm(true);
@@ -116,7 +118,8 @@ export default function UsersModule() {
       phone: '',
       kelurahan_id: '',
       rw_id: '',
-      rt_id: ''
+      rt_id: '',
+      role: 'kader'
     });
     setPasswordInput('');
   };
@@ -161,9 +164,10 @@ export default function UsersModule() {
             nik: formData.nik,
             name: formData.name,
             phone: formData.phone,
-            kelurahan_id: Number(formData.kelurahan_id),
-            rw_id: Number(formData.rw_id),
-            rt_id: Number(formData.rt_id),
+            kelurahan_id: formData.kelurahan_id ? Number(formData.kelurahan_id) : null,
+            rw_id: formData.rw_id ? Number(formData.rw_id) : null,
+            rt_id: formData.rt_id ? Number(formData.rt_id) : null,
+            role: formData.role,
             ...(passwordInput ? { password_display: passwordInput } : {})
           })
           .eq('id', editingUserId);
@@ -175,16 +179,16 @@ export default function UsersModule() {
           try {
             console.log('Updating password for user:', editingUserId);
             await adminUpdatePassword(editingUserId, passwordInput);
-            alert('✅ PROFIL & PASSWORD BERHASIL DIUPDATE!\n\nKader sekarang bisa login dengan password baru:\nPassword: ' + passwordInput);
+            alert('✅ AKSES BERHASIL DIUPDATE!\n\nUser sekarang bisa login dengan password baru:\nPassword: ' + passwordInput);
           } catch (backendError: any) {
             console.error('Backend Error:', backendError);
             
             // Show detailed error message
             const errorMsg = backendError.message || 'Unknown error';
-            alert(`⚠️ PERHATIAN!\n\nProfil berhasil diupdate di database, tapi GAGAL mengubah password login di sistem Auth.\n\n📋 Detail Error:\n${errorMsg}\n\n💡 Solusi:\n1. Pastikan Edge Function "admin-update-user" sudah di-deploy\n2. Cek Supabase Dashboard > Edge Functions\n3. Atau hubungi developer untuk bantuan`);
+            alert(`⚠️ PERHATIAN!\n\nProfil berhasil diupdate di database, tapi GAGAL mengubah password login di sistem Auth.\n\n📋 Detail Error:\n${errorMsg}\n\n💡 Solusi:\nIni biasanya karena masalah izin akses di Supabase. Silakan gunakan SQL Editor untuk reset password jika mendesak.`);
           }
         } else {
-            alert('✅ Profil Kader Berhasil Diperbarui!');
+            alert('✅ Pengaturan Akses Berhasil Diperbarui!');
         }
         
         cancelEdit();
@@ -221,18 +225,13 @@ export default function UsersModule() {
         options: {
           data: {
             full_name: formData.name,
-            nik: formData.nik
-          },
-          // PENTING: Skip email confirmation untuk kader bisa langsung login
-          emailRedirectTo: undefined
+            nik: formData.nik,
+            role: formData.role
+          }
         }
       });
 
       if (authError) {
-        // Handle specific error for email confirmation
-        if (authError.message.toLowerCase().includes('email')) {
-          throw new Error(`Gagal membuat akun: ${authError.message}\n\nPASTIKAN fitur "Confirm Email" di Supabase Dashboard sudah DIMATIKAN!\n\nCaranya:\n1. Buka Supabase Dashboard\n2. Authentication > Settings\n3. Matikan "Enable email confirmations"`);
-        }
         throw new Error(`Gagal membuat akun Auth: ${authError.message}`);
       }
 
@@ -241,18 +240,13 @@ export default function UsersModule() {
       }
 
       // 1.5 FORCE UPDATE PASSWORD via Backend to ensure it matches what admin typed
-      // This solves the issue if the user already existed in Auth with a different password
       try {
         await adminUpdatePassword(authData.user.id, finalPassword);
       } catch (pwError) {
         console.warn('Backend password update failed during creation, but continuing...', pwError);
       }
 
-      // Tunggu sebentar agar trigger database selesai membuat profile default
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // 2. Update Profile yang sudah dibuat oleh trigger dengan data lengkap
-      // Gunakan upsert untuk handle jika trigger belum jalan atau sudah jalan
       const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert({
@@ -260,20 +254,18 @@ export default function UsersModule() {
           nik: formData.nik,
           name: formData.name,
           phone: formData.phone,
-          kelurahan_id: Number(formData.kelurahan_id),
-          rw_id: Number(formData.rw_id),
-          rt_id: Number(formData.rt_id),
+          kelurahan_id: formData.kelurahan_id ? Number(formData.kelurahan_id) : null,
+          rw_id: formData.rw_id ? Number(formData.rw_id) : null,
+          rt_id: formData.rt_id ? Number(formData.rt_id) : null,
           username: username,
           password_display: finalPassword,
-          role: 'kader',
+          role: formData.role,
           is_active: true
         }, {
           onConflict: 'id'
         });
 
       if (profileError) {
-        console.error('Profile Error:', profileError);
-        // Jika gagal update profile, coba hapus auth user
         throw new Error(`Akun Auth berhasil dibuat, tapi gagal menyimpan profil: ${profileError.message}`);
       }
 
@@ -285,10 +277,18 @@ export default function UsersModule() {
         phone: '',
         kelurahan_id: '',
         rw_id: '',
-        rt_id: ''
+        rt_id: '',
+        role: 'kader'
       });
       setPasswordInput('');
-      alert(`User Berhasil Dibuat!\n\nUsername: ${username}\nPassword: ${finalPassword}\n\nSILAKAN CATAT/FOTO password ini sekarang!`);
+      alert(`User Berhasil Dibuat!\n\nUsername: ${username}\nPassword: ${finalPassword}\nRole: ${formData.role === 'super_admin' ? 'FULL ACCESS' : 'KADER'}`);
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || 'Gagal menyimpan user. Pastikan NIK unik.');
+    } finally {
+      setLoading(false);
+    }
+  };
     } catch (error: any) {
       console.error(error);
       alert(error.message || 'Gagal menyimpan user. Pastikan NIK unik.');
@@ -347,8 +347,8 @@ export default function UsersModule() {
          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20 blur-2xl"></div>
          <div className="flex justify-between items-center relative z-10">
            <div>
-             <h2 className="text-3xl font-black tracking-tight">Manajemen Kader</h2>
-             <p className="text-blue-100/80 font-medium mt-1 italic">Kelola akun dan wilayah tugas kader lapangan.</p>
+             <h2 className="text-3xl font-black tracking-tight">Pengaturan Akses</h2>
+             <p className="text-blue-100/80 font-medium mt-1 italic">Kelola hak akses pengguna (Super Admin & Kader).</p>
            </div>
            <button
              onClick={() => {
@@ -359,7 +359,7 @@ export default function UsersModule() {
                showForm ? 'bg-rose-500 shadow-rose-200 text-white' : 'bg-white text-blue-600 shadow-white/20'
              }`}
            >
-             {showForm ? 'Batal' : <><Plus size={20} strokeWidth={3} /><span>Tambah Kader</span></>}
+             {showForm ? 'Batal' : <><Plus size={20} strokeWidth={3} /><span>Tambah User</span></>}
            </button>
          </div>
       </div>
@@ -370,14 +370,38 @@ export default function UsersModule() {
              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black">
                 {editingUserId ? <Info size={20} /> : <Plus size={20} />}
              </div>
-             {editingUserId ? 'Edit Profil Kader' : 'Tambah Kader Baru'}
+             {editingUserId ? 'Edit Pengaturan Akses' : 'Tambah User Baru'}
           </h3>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2 bg-blue-50 border border-blue-100 p-4 rounded-2xl mb-2">
-               <p className="text-xs text-blue-700 font-bold flex items-center gap-2">
-                  <Info size={16} />
-                  PENTING: Pastikan fitur "Confirm Email" di Dashboard Supabase sudah DIMATIKAN agar kader bisa langsung login tanpa verifikasi email.
-               </p>
+            
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Pilih Level Akses</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, role: 'super_admin'})}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
+                    formData.role === 'super_admin' 
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md' 
+                      : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <span className="font-black text-sm uppercase tracking-tighter">FULL ACCESS</span>
+                  <span className="text-[9px] font-bold text-center leading-tight">Bisa mengelola semua menu & data PKM</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, role: 'kader'})}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
+                    formData.role === 'kader' 
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md' 
+                      : 'border-slate-100 bg-slate-50 text-slate-400 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <span className="font-black text-sm uppercase tracking-tighter">AKSES KADER</span>
+                  <span className="text-[9px] font-bold text-center leading-tight">Hanya bisa input & monitor data survey sendiri</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -399,7 +423,7 @@ export default function UsersModule() {
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
                 className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none transition-all font-bold text-slate-700 bg-slate-50 shadow-inner"
-                placeholder="Nama Kader"
+                placeholder="Nama Pengguna"
               />
             </div>
             <div className="space-y-1.5">
@@ -426,56 +450,61 @@ export default function UsersModule() {
                />
                {editingUserId ? (
                  <p className="text-[9px] text-emerald-500 font-bold mt-1 px-1">
-                    *INFO: Password yang Anda masukkan di sini akan mengganti password login kader secara otomatis.
+                    *INFO: Password ini akan mengganti password login user secara otomatis.
                  </p>
                ) : (
                  <p className="text-[9px] text-amber-400 font-bold mt-1 px-1">*Sistem akan membuat password acak jika dikosongkan.</p>
                )}
             </div>
             
-            {/* Location Selects */}
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kelurahan Tugas</label>
-              <select
-                required
-                value={formData.kelurahan_id}
-                onChange={e => setFormData({...formData, kelurahan_id: e.target.value, rw_id: '', rt_id: ''})}
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none transition-all font-black text-slate-700 bg-slate-50 shadow-inner appearance-none"
-              >
-                <option value="">Pilih Kelurahan</option>
-                {kelurahans.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RW Tugas</label>
-              <select
-                required
-                disabled={!formData.kelurahan_id}
-                value={formData.rw_id}
-                onChange={e => setFormData({...formData, rw_id: e.target.value, rt_id: ''})}
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none transition-all font-black text-slate-700 bg-slate-50 shadow-inner disabled:opacity-50 appearance-none"
-              >
-                <option value="">Pilih RW</option>
-                {rws.map(r => <option key={r.id} value={r.id}>RW {r.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RT Tugas</label>
-              <select
-                required
-                disabled={!formData.rw_id}
-                value={formData.rt_id}
-                onChange={e => setFormData({...formData, rt_id: e.target.value})}
-                className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none transition-all font-black text-slate-700 bg-slate-50 shadow-inner disabled:opacity-50 appearance-none"
-              >
-                <option value="">Pilih RT</option>
-                {rts.map(r => <option key={r.id} value={r.id}>RT {r.name}</option>)}
-              </select>
+            {/* Location Selects - Only show for Kader or let them be optional for Admin */}
+            <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">
+               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Wilayah Tugas {formData.role === 'super_admin' ? '(Opsional)' : '(Wajib)'}</h4>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kelurahan</label>
+                    <select
+                      required={formData.role === 'kader'}
+                      value={formData.kelurahan_id}
+                      onChange={e => setFormData({...formData, kelurahan_id: e.target.value, rw_id: '', rt_id: ''})}
+                      className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none transition-all font-black text-slate-700 bg-slate-50 shadow-inner appearance-none"
+                    >
+                      <option value="">Pilih Kelurahan</option>
+                      {kelurahans.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RW</label>
+                    <select
+                      required={formData.role === 'kader'}
+                      disabled={!formData.kelurahan_id}
+                      value={formData.rw_id}
+                      onChange={e => setFormData({...formData, rw_id: e.target.value, rt_id: ''})}
+                      className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none transition-all font-black text-slate-700 bg-slate-50 shadow-inner disabled:opacity-50 appearance-none"
+                    >
+                      <option value="">Pilih RW</option>
+                      {rws.map(r => <option key={r.id} value={r.id}>RW {r.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RT</label>
+                    <select
+                      required={formData.role === 'kader'}
+                      disabled={!formData.rw_id}
+                      value={formData.rt_id}
+                      onChange={e => setFormData({...formData, rt_id: e.target.value})}
+                      className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none transition-all font-black text-slate-700 bg-slate-50 shadow-inner disabled:opacity-50 appearance-none"
+                    >
+                      <option value="">Pilih RT</option>
+                      {rts.map(r => <option key={r.id} value={r.id}>RT {r.name}</option>)}
+                    </select>
+                  </div>
+               </div>
             </div>
 
             <div className="md:col-span-2 pt-4 flex gap-3">
               <button type="submit" className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-emerald-200 hover:from-emerald-700 hover:to-teal-600 transition-all active:scale-95 uppercase tracking-widest">
-                {editingUserId ? 'Simpan Perubahan' : 'Simpan & Generate Akun Kader'}
+                {editingUserId ? 'Simpan Perubahan' : 'Simpan & Create Akun'}
               </button>
               {editingUserId && (
                 <button 
@@ -491,16 +520,16 @@ export default function UsersModule() {
         </div>
       )}
 
-      {/* Users List - Reverted to Table with Premium Colors */}
+      {/* Users List */}
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-50 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50/50">
               <tr>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Kader / NIK</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama / NIK</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Level Akses</th>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Wilayah Tugas</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Akses (User/Pass)</th>
-                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Login (User/Pass)</th>
                 <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Aksi</th>
               </tr>
             </thead>
@@ -508,7 +537,7 @@ export default function UsersModule() {
               {loading ? (
                 <tr><td colSpan={5} className="text-center py-10 animate-pulse text-slate-400 font-bold">Memuat Data...</td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-10 text-slate-400 italic font-medium">Belum ada data kader terdaftar.</td></tr>
+                <tr><td colSpan={5} className="text-center py-10 text-slate-400 italic font-medium">Belum ada data user terdaftar.</td></tr>
               ) : (
                 users.map((user) => (
                   <tr key={user.id} className="hover:bg-blue-50/30 transition-colors group">
@@ -517,16 +546,29 @@ export default function UsersModule() {
                       <div className="text-[10px] font-bold text-slate-400 tracking-tighter mt-0.5">{user.nik}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                         <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{user.kelurahan?.name}</span>
-                         </div>
-                         <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">RW {user.rw?.name} / RT {user.rt?.name}</span>
-                         </div>
-                      </div>
+                       <span className={`px-3 py-1 text-[9px] font-black rounded-full border shadow-sm ${
+                         user.role === 'super_admin' 
+                           ? 'bg-blue-600 text-white border-blue-400' 
+                           : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                       }`}>
+                         {user.role === 'super_admin' ? 'FULL ACCESS' : 'KADER'}
+                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.kelurahan?.name ? (
+                        <div className="flex flex-col gap-1">
+                           <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                              <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{user.kelurahan?.name}</span>
+                           </div>
+                           <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                              <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">RW {user.rw?.name} / RT {user.rt?.name}</span>
+                           </div>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-300 italic">Semua Wilayah</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 shadow-inner group-hover:bg-white transition-colors min-w-[120px]">
@@ -536,34 +578,18 @@ export default function UsersModule() {
                          </div>
                          <div className="flex flex-col mt-1.5 pt-1.5 border-t border-dashed border-slate-200">
                             <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Password</span>
-                            <div className="flex justify-between items-center group/pass">
-                                <span className="text-xs font-black text-slate-700 tracking-tight font-mono">{user.password_display || 'Padasuka1'}</span>
-                                <button 
-                                  onClick={handleUpdatePassword} 
-                                  className="text-blue-500 opacity-0 group-hover/pass:opacity-100 transition-opacity"
-                                  title="Info Ganti Password"
-                                >
-                                  <Info size={12} />
-                                </button>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-black text-slate-700 tracking-tight font-mono">{user.password_display || '********'}</span>
                             </div>
                          </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 inline-flex text-[9px] leading-5 font-black rounded-full border ${
-                        user.is_active 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
-                          : 'bg-rose-50 text-rose-700 border-rose-100'
-                      }`}>
-                        {user.is_active ? '● AKTIF' : '○ NON-AKTIF'}
-                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-center gap-2">
                         <button
                           onClick={() => handleEdit(user)}
                           className="p-2.5 bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white rounded-xl transition-all shadow-sm"
-                          title="Edit Profil"
+                          title="Edit Akses"
                         >
                           <Edit size={16} />
                         </button>
@@ -581,7 +607,7 @@ export default function UsersModule() {
                         <button
                           onClick={() => handleDelete(user.id, user.name)}
                           className="p-2.5 bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white rounded-xl transition-all shadow-sm"
-                          title="Hapus Permanen"
+                          title="Hapus User"
                         >
                           <Trash2 size={16} />
                         </button>

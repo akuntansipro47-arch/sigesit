@@ -208,24 +208,30 @@ export default function LocationModule() {
   };
 
   // Filtering logic for RW list table
-  const filteredRWs = (rws || []).filter(r => {
-    if (!newRW.kelurahan_id) return true;
-    return String(r.kelurahan_id) === newRW.kelurahan_id;
-  });
+  const filteredRWs = React.useMemo(() => {
+    return (rws || []).filter(r => {
+      if (!newRW.kelurahan_id) return true;
+      return String(r.kelurahan_id) === String(newRW.kelurahan_id);
+    });
+  }, [rws, newRW.kelurahan_id]);
 
   // Filtering logic for RT list table
-  const filteredRTs = (rts || []).filter(rt => {
-    // Priority 1: Filter by RW if selected
-    if (newRT.rw_id) return String(rt.rw_id) === String(newRT.rw_id);
-    
-    // Priority 2: Filter by Kelurahan if selected
-    if (selectedKelurahanForRT) {
-      const rwData = (rt as any).rw;
-      return rwData && String(rwData.kelurahan_id) === String(selectedKelurahanForRT);
-    }
-    
-    return true;
-  });
+  const filteredRTs = React.useMemo(() => {
+    return (rts || []).filter(rt => {
+      // 1. Filter by specific RW if selected in form
+      if (newRT.rw_id) {
+        return String(rt.rw_id) === String(newRT.rw_id);
+      }
+      
+      // 2. Filter by Kelurahan if selected in dropdown
+      if (selectedKelurahanForRT) {
+        const kelId = (rt as any).rw?.kelurahan_id;
+        return String(kelId) === String(selectedKelurahanForRT);
+      }
+      
+      return true;
+    });
+  }, [rts, newRT.rw_id, selectedKelurahanForRT]);
 
   return (
     <div className="space-y-10 pb-20">

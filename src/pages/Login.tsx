@@ -53,22 +53,23 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // 1. Check for Super Bypass Mode (Emergency Access)
-      if (username === 'sigesit_admin' && password === 'sigesit2026') {
-        // Force login as super_admin
-        const { data: adminData } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('role', 'super_admin')
-          .limit(1)
-          .single();
-          
-        if (adminData) {
-          // Note: This only works if RLS allows it or we have a profile
-          // But since we can't bypass real auth easily without a session,
-          // let's try to find an existing admin email to use
-          alert('Emergency Bypass Active');
-        }
+      // EMERGENCY BYPASS MODE
+      if (username === 'admin_sigesit' && password === 'sigesit2026') {
+        localStorage.setItem('force_mock_mode', 'true');
+        // Create a fake admin session
+        const mockAdmin = {
+          user: { id: 'admin-bypass-id', email: 'admin@sigesit.com' },
+          profile: { 
+            id: 'admin-bypass-id', 
+            name: 'SUPER ADMIN (BYPASS)', 
+            role: 'super_admin', 
+            username: 'admin_sigesit',
+            is_active: true 
+          }
+        };
+        localStorage.setItem('mock_session', JSON.stringify(mockAdmin));
+        window.location.href = '/admin';
+        return;
       }
 
       // SPECIAL DEMO LOGIN (For Presentation)
@@ -260,7 +261,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
             )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 30 Jan 2026 | 09:15 WIB
+              Update Terakhir: 31 Jan 2026 | 13:45 WIB
             </div>
             <button 
               onClick={handleHardReset}
