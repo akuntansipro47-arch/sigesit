@@ -232,10 +232,7 @@ export default function LocationModule() {
     const matchesKelurahan = selectedKelurahanForRT 
       ? String((rt as any).rw?.kelurahan_id) === selectedKelurahanForRT 
       : true;
-    const matchesRW = newRT.rw_id 
-      ? String(rt.rw_id) === newRT.rw_id 
-      : true;
-    return matchesKelurahan && matchesRW;
+    return matchesKelurahan;
   });
 
   return (
