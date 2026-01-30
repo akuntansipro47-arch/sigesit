@@ -26,7 +26,7 @@ export default function LocationModule() {
   const fetchData = async () => {
     const { data: kData } = await supabase.from('kelurahan').select('*').order('name');
     const { data: rwData } = await supabase.from('rw').select('*, kelurahan(name)').order('name');
-    const { data: rtData } = await supabase.from('rt').select('*, rw(name, kelurahan(name))').order('name');
+    const { data: rtData } = await supabase.from('rt').select('*, rw(name, kelurahan_id, kelurahan(name))').order('name');
     
     // Sort RWs: Primary by Kelurahan Name, Secondary by RW Name (Numeric)
     const sortedRWs = (rwData || []).sort((a, b) => {
