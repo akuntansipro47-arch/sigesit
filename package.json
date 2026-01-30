@@ -1,7 +1,7 @@
 {
   "name": "sigesit-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "4.4.3",
   "type": "module",
   "scripts": {
     "dev": "vite",

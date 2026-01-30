@@ -255,13 +255,13 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
                 MODE DEMO AKTIF
               </div>
             ) : (
-              <div className="inline-block bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-orange-200 animate-bounce border border-white/20">
-                V4.4.3 DEBUG MODE
+              <div className="inline-block bg-gradient-to-r from-red-600 to-rose-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-red-200 animate-bounce border border-white/20">
+                V4.4.3 STABLE UPDATE
               </div>
             )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 31 Jan 2026 | 13:45 WIB
+              Update Terakhir: 31 Jan 2026 | 14:00 WIB
             </div>
             <button 
               onClick={handleHardReset}
