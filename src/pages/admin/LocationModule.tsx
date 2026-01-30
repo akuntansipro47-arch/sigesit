@@ -207,19 +207,24 @@ export default function LocationModule() {
     return colors[index];
   };
 
-  // Filtering logic for RW list
-  const filteredRWs = newRW.kelurahan_id 
-    ? rws.filter(r => String(r.kelurahan_id) === newRW.kelurahan_id)
-    : rws;
+  // Filtering logic for RW list table
+  const filteredRWs = (rws || []).filter(r => {
+    if (!newRW.kelurahan_id) return true;
+    return String(r.kelurahan_id) === newRW.kelurahan_id;
+  });
 
-  // Filtering logic for RT list
-  const filteredRTs = rts.filter(rt => {
-    if (!selectedKelurahanForRT) return true;
+  // Filtering logic for RT list table
+  const filteredRTs = (rts || []).filter(rt => {
+    // Priority 1: Filter by RW if selected
+    if (newRT.rw_id) return String(rt.rw_id) === String(newRT.rw_id);
     
-    const rw = (rt as any).rw;
-    if (!rw) return false;
+    // Priority 2: Filter by Kelurahan if selected
+    if (selectedKelurahanForRT) {
+      const rwData = (rt as any).rw;
+      return rwData && String(rwData.kelurahan_id) === String(selectedKelurahanForRT);
+    }
     
-    return String(rw.kelurahan_id) === selectedKelurahanForRT;
+    return true;
   });
 
   return (

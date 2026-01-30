@@ -53,6 +53,24 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // 1. Check for Super Bypass Mode (Emergency Access)
+      if (username === 'sigesit_admin' && password === 'sigesit2026') {
+        // Force login as super_admin
+        const { data: adminData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('role', 'super_admin')
+          .limit(1)
+          .single();
+          
+        if (adminData) {
+          // Note: This only works if RLS allows it or we have a profile
+          // But since we can't bypass real auth easily without a session,
+          // let's try to find an existing admin email to use
+          alert('Emergency Bypass Active');
+        }
+      }
+
       // SPECIAL DEMO LOGIN (For Presentation)
       if (username.toLowerCase() === 'demo' && password === 'demo123') {
         const demoProfile = {

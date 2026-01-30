@@ -29,34 +29,23 @@ export const getPKMProfile = async (skipFallback: boolean = false) => {
 export const updatePKMProfile = async (profile: Partial<Profile>) => {
   if (USE_MOCK) return mockApi.updatePKMProfile(profile);
 
-  // Helper: Ensure we update the existing singleton row if ID is missing
-  if (!profile.id) {
-    const { data: existing } = await supabase.from('pkm_profile').select('id').limit(1).single();
-    if (existing) {
-      profile.id = existing.id;
-    }
-  }
-
   // Ensure ID is present for UPSERT to work as UPDATE, otherwise it tries to INSERT
-  // Since we want a SINGLETON, we must ensure ID is constant or we rely on 'ON CONFLICT'
-  // But pkm_profile might not have a unique constraint on anything other than ID.
-  
-  // Force a constant UUID for the singleton PKM profile if missing
-  // This ensures that different devices update the same record
   const SINGLETON_ID = '00000000-0000-0000-0000-000000000001';
   const profileToSave = { ...profile };
-  if (!profileToSave.id || profileToSave.id === '1') {
-     profileToSave.id = SINGLETON_ID; 
+  
+  // Use existing ID if provided, otherwise use Singleton
+  if (!profileToSave.id) {
+     const { data: existing } = await supabase.from('pkm_profile').select('id').limit(1).maybeSingle();
+     profileToSave.id = existing?.id || SINGLETON_ID; 
   }
 
-  if (profileToSave.id) {
-      // Use UPSERT instead of update to handle the case where the record doesn't exist yet
-      const { error } = await supabase.from('pkm_profile').upsert(profileToSave);
-      if (error) {
-         console.error("Save Error:", error);
-         alert(`Gagal menyimpan ke Server: ${error.message}`);
-         throw error;
-      }
+  // Use UPSERT instead of update to handle the case where the record doesn't exist yet
+  const { error } = await supabase.from('pkm_profile').upsert(profileToSave, {
+    onConflict: 'id'
+  });
+  if (error) {
+     console.error("Save Error:", error);
+     throw error;
   }
 };
 
