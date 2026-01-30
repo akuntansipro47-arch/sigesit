@@ -231,9 +231,15 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
           
           {/* VERSION BADGE */}
           <div className="mt-4 flex flex-col items-center gap-2">
-            <div className="inline-block bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-orange-200 animate-bounce border border-white/20">
-              V4.4.3 DEBUG MODE
-            </div>
+            {isMock ? (
+              <div className="inline-block bg-gradient-to-r from-purple-600 to-indigo-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-purple-200 animate-pulse border border-white/20">
+                MODE DEMO AKTIF
+              </div>
+            ) : (
+              <div className="inline-block bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-orange-200 animate-bounce border border-white/20">
+                V4.4.3 DEBUG MODE
+              </div>
+            )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
               Update Terakhir: 30 Jan 2026 | 09:15 WIB

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getPKMProfile, updatePKMProfile } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Profile } from '@/types';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 export default function ProfileModule() {
+  const { isMock } = useAuth();
   const [profile, setProfile] = useState<Partial<Profile>>({});
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +44,10 @@ export default function ProfileModule() {
 
   const handleSyncFromServer = async () => {
     if (confirm('Apakah Anda yakin ingin menarik data terbaru dari server?')) {
+      if (isMock) {
+        alert('[DEMO MODE] Data sinkronisasi berhasil disimulasikan (Lokal)');
+        return;
+      }
       setLoading(true);
       try {
         const data = await getPKMProfile(true); // Force server fetch
@@ -127,6 +133,13 @@ export default function ProfileModule() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isMock) {
+      localStorage.setItem('pkm_profile_v1', JSON.stringify(profile));
+      alert('[DEMO MODE] Profil berhasil disimpan di browser (Lokal)');
+      return;
+    }
+
     setLoading(true);
     
     try {

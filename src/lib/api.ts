@@ -68,6 +68,42 @@ export const getKelurahans = async () => {
   return data as Kelurahan[];
 };
 
+export const createKelurahan = async (name: string) => {
+  if (USE_MOCK) {
+    const current = JSON.parse(localStorage.getItem('mock_kelurahan') || '[]');
+    const mockNew = { id: Date.now(), name };
+    current.push(mockNew);
+    localStorage.setItem('mock_kelurahan', JSON.stringify(current));
+    return mockNew;
+  }
+  const { data, error } = await supabase.from('kelurahan').insert({ name }).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateKelurahan = async (id: number, name: string) => {
+  if (USE_MOCK) {
+    const current = JSON.parse(localStorage.getItem('mock_kelurahan') || '[]');
+    const updated = current.map((k: any) => k.id === id ? { ...k, name } : k);
+    localStorage.setItem('mock_kelurahan', JSON.stringify(updated));
+    return;
+  }
+  const { error } = await supabase.from('kelurahan').update({ name }).eq('id', id);
+  if (error) throw error;
+};
+
+export const deleteLocation = async (table: string, id: number) => {
+  if (USE_MOCK) {
+    const key = `mock_${table}`;
+    const current = JSON.parse(localStorage.getItem(key) || '[]');
+    const updated = current.filter((i: any) => i.id !== id);
+    localStorage.setItem(key, JSON.stringify(updated));
+    return;
+  }
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  if (error) throw error;
+};
+
 export const getRWs = async (kelurahanId: number) => {
   if (USE_MOCK) return mockApi.getRWs(kelurahanId);
   const { data, error } = await supabase.from('rw').select('*').eq('kelurahan_id', kelurahanId).order('name');
@@ -79,6 +115,41 @@ export const getRWs = async (kelurahanId: number) => {
   );
 };
 
+export const getAllRWs = async () => {
+  if (USE_MOCK) {
+    const kData = await mockApi.getKelurahans();
+    const rwData = JSON.parse(localStorage.getItem('mock_rw') || '[]');
+    return rwData.map((r: any) => ({ ...r, kelurahan: kData.find((k: any) => String(k.id) === String(r.kelurahan_id)) }));
+  }
+  const { data, error } = await supabase.from('rw').select('*, kelurahan(name)').order('name');
+  if (error) throw error;
+  return data;
+}
+
+export const createRW = async (name: string, kelurahan_id: number) => {
+  if (USE_MOCK) {
+    const current = JSON.parse(localStorage.getItem('mock_rw') || '[]');
+    const mockNew = { id: Date.now(), name, kelurahan_id };
+    current.push(mockNew);
+    localStorage.setItem('mock_rw', JSON.stringify(current));
+    return mockNew;
+  }
+  const { data, error } = await supabase.from('rw').insert({ name, kelurahan_id }).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateRW = async (id: number, name: string, kelurahan_id: number) => {
+  if (USE_MOCK) {
+    const current = JSON.parse(localStorage.getItem('mock_rw') || '[]');
+    const updated = current.map((r: any) => r.id === id ? { ...r, name, kelurahan_id } : r);
+    localStorage.setItem('mock_rw', JSON.stringify(updated));
+    return;
+  }
+  const { error } = await supabase.from('rw').update({ name, kelurahan_id }).eq('id', id);
+  if (error) throw error;
+};
+
 export const getRTs = async (rwId: number) => {
   if (USE_MOCK) return mockApi.getRTs(rwId);
   const { data, error } = await supabase.from('rt').select('*').eq('rw_id', rwId).order('name');
@@ -88,6 +159,43 @@ export const getRTs = async (rwId: number) => {
   return (data as RT[]).sort((a, b) => 
     a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
   );
+};
+
+export const getAllRTs = async () => {
+  if (USE_MOCK) {
+    const kData = await mockApi.getKelurahans();
+    const rwData = JSON.parse(localStorage.getItem('mock_rw') || '[]');
+    const rtData = JSON.parse(localStorage.getItem('mock_rt') || '[]');
+    const enrichedRWs = rwData.map((r: any) => ({ ...r, kelurahan: kData.find((k: any) => String(k.id) === String(r.kelurahan_id)) }));
+    return rtData.map((r: any) => ({ ...r, rw: enrichedRWs.find((rw: any) => String(rw.id) === String(r.rw_id)) }));
+  }
+  const { data, error } = await supabase.from('rt').select('*, rw(name, kelurahan_id, kelurahan(name))').order('name');
+  if (error) throw error;
+  return data;
+}
+
+export const createRT = async (name: string, rw_id: number) => {
+  if (USE_MOCK) {
+    const current = JSON.parse(localStorage.getItem('mock_rt') || '[]');
+    const mockNew = { id: Date.now(), name, rw_id };
+    current.push(mockNew);
+    localStorage.setItem('mock_rt', JSON.stringify(current));
+    return mockNew;
+  }
+  const { data, error } = await supabase.from('rt').insert({ name, rw_id }).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateRT = async (id: number, name: string, rw_id: number) => {
+  if (USE_MOCK) {
+    const current = JSON.parse(localStorage.getItem('mock_rt') || '[]');
+    const updated = current.map((r: any) => r.id === id ? { ...r, name, rw_id } : r);
+    localStorage.setItem('mock_rt', JSON.stringify(updated));
+    return;
+  }
+  const { error } = await supabase.from('rt').update({ name, rw_id }).eq('id', id);
+  if (error) throw error;
 };
 
 // User API

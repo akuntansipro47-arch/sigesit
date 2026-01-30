@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { 
+  getKelurahans, 
+  getAllRWs, 
+  getAllRTs, 
+  createKelurahan, 
+  updateKelurahan, 
+  createRW, 
+  updateRW, 
+  createRT, 
+  updateRT, 
+  deleteLocation 
+} from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Kelurahan, RW, RT } from '@/types';
 import { Plus, Trash2, Edit, Save, X } from 'lucide-react';
 
 export default function LocationModule() {
+  const { isMock } = useAuth();
   const [kelurahans, setKelurahans] = useState<Kelurahan[]>([]);
   const [rws, setRws] = useState<RW[]>([]);
   const [rts, setRts] = useState<RT[]>([]);
@@ -24,45 +37,40 @@ export default function LocationModule() {
   }, []);
 
   const fetchData = async () => {
-    const { data: kData } = await supabase.from('kelurahan').select('*').order('name');
-    const { data: rwData } = await supabase.from('rw').select('*, kelurahan(name)').order('name');
-    const { data: rtData } = await supabase.from('rt').select('*, rw(name, kelurahan_id, kelurahan(name))').order('name');
-    
-    // Sort RWs: Primary by Kelurahan Name, Secondary by RW Name (Numeric)
-    const sortedRWs = (rwData || []).sort((a, b) => {
-      const kelA = (a as any).kelurahan?.name || '';
-      const kelB = (b as any).kelurahan?.name || '';
+    try {
+      const kData = await getKelurahans();
+      const rwData = await getAllRWs();
+      const rtData = await getAllRTs();
       
-      // 1. Compare Kelurahan Name
-      const kelCompare = kelA.localeCompare(kelB);
-      if (kelCompare !== 0) return kelCompare;
-      
-      // 2. Compare RW Name Numerically
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-    });
+      // Sort RWs: Primary by Kelurahan Name, Secondary by RW Name (Numeric)
+      const sortedRWs = (rwData || []).sort((a: any, b: any) => {
+        const kelA = a.kelurahan?.name || '';
+        const kelB = b.kelurahan?.name || '';
+        const kelCompare = kelA.localeCompare(kelB);
+        if (kelCompare !== 0) return kelCompare;
+        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      });
 
-    // Sort RTs: Primary by Kelurahan, then RW, then RT (Numeric)
-    const sortedRTs = (rtData || []).sort((a, b) => {
-      const kelA = (a as any).rw?.kelurahan?.name || '';
-      const kelB = (b as any).rw?.kelurahan?.name || '';
-      const rwA = (a as any).rw?.name || '';
-      const rwB = (b as any).rw?.name || '';
-      
-      // 1. Compare Kelurahan
-      const kelCompare = kelA.localeCompare(kelB);
-      if (kelCompare !== 0) return kelCompare;
-      
-      // 2. Compare RW (Numeric)
-      const rwCompare = rwA.localeCompare(rwB, undefined, { numeric: true, sensitivity: 'base' });
-      if (rwCompare !== 0) return rwCompare;
-      
-      // 3. Compare RT (Numeric)
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-    });
+      // Sort RTs: Primary by Kelurahan, then RW, then RT (Numeric)
+      const sortedRTs = (rtData || []).sort((a: any, b: any) => {
+        const kelA = a.rw?.kelurahan?.name || '';
+        const kelB = b.rw?.kelurahan?.name || '';
+        const rwA = a.rw?.name || '';
+        const rwB = b.rw?.name || '';
+        
+        const kelCompare = kelA.localeCompare(kelB);
+        if (kelCompare !== 0) return kelCompare;
+        const rwCompare = rwA.localeCompare(rwB, undefined, { numeric: true, sensitivity: 'base' });
+        if (rwCompare !== 0) return rwCompare;
+        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      });
 
-    setKelurahans(kData || []);
-    setRws(sortedRWs);
-    setRts(sortedRTs);
+      setKelurahans(kData);
+      setRws(sortedRWs);
+      setRts(sortedRTs);
+    } catch (err) {
+      console.error('Fetch error:', err);
+    }
   };
 
   const addKelurahan = async (e: React.FormEvent) => {
@@ -70,22 +78,18 @@ export default function LocationModule() {
     if (!newKelurahan) return;
     
     try {
-        if (editingKelurahanId) {
-            const { error } = await supabase.from('kelurahan').update({ name: newKelurahan }).eq('id', editingKelurahanId);
-            if (error) throw error;
-            alert('Kelurahan berhasil diupdate');
-            setEditingKelurahanId(null);
-        } else {
-            const { error } = await supabase.from('kelurahan').insert({ name: newKelurahan });
-            if (error) throw error;
-            alert('Kelurahan berhasil ditambahkan');
-        }
-        
-        setNewKelurahan('');
-        fetchData();
+      if (editingKelurahanId) {
+        await updateKelurahan(editingKelurahanId, newKelurahan);
+        alert(isMock ? '[DEMO MODE] Kelurahan berhasil diupdate (Lokal)' : 'Kelurahan berhasil diupdate');
+        setEditingKelurahanId(null);
+      } else {
+        await createKelurahan(newKelurahan);
+        alert(isMock ? '[DEMO MODE] Kelurahan berhasil ditambahkan (Lokal)' : 'Kelurahan berhasil ditambahkan');
+      }
+      setNewKelurahan('');
+      fetchData();
     } catch (err: any) {
-        console.error('Error operation kelurahan:', err);
-        alert('Gagal: ' + err.message);
+      alert('Gagal: ' + err.message);
     }
   };
 
@@ -94,27 +98,18 @@ export default function LocationModule() {
     if (!newRW.name || !newRW.kelurahan_id) return;
 
     try {
-        if (editingRWId) {
-            const { error } = await supabase.from('rw').update({ 
-                name: newRW.name, 
-                kelurahan_id: Number(newRW.kelurahan_id) 
-            }).eq('id', editingRWId);
-            if (error) throw error;
-            alert('RW berhasil diupdate');
-            setEditingRWId(null);
-        } else {
-            const { error } = await supabase.from('rw').insert({ 
-                name: newRW.name, 
-                kelurahan_id: Number(newRW.kelurahan_id) 
-            });
-            if (error) throw error;
-            alert('RW berhasil ditambahkan');
-        }
-        setNewRW({ name: '', kelurahan_id: '' });
-        fetchData();
+      if (editingRWId) {
+        await updateRW(editingRWId, newRW.name, Number(newRW.kelurahan_id));
+        alert(isMock ? '[DEMO MODE] RW berhasil diupdate (Lokal)' : 'RW berhasil diupdate');
+        setEditingRWId(null);
+      } else {
+        await createRW(newRW.name, Number(newRW.kelurahan_id));
+        alert(isMock ? '[DEMO MODE] RW berhasil ditambahkan (Lokal)' : 'RW berhasil ditambahkan');
+      }
+      setNewRW({ name: '', kelurahan_id: '' });
+      fetchData();
     } catch (err: any) {
-        console.error(err);
-        alert('Gagal: ' + err.message);
+      alert('Gagal: ' + err.message);
     }
   };
 
@@ -123,43 +118,33 @@ export default function LocationModule() {
     if (!newRT.name || !newRT.rw_id) return;
 
     try {
-        if (editingRTId) {
-            const { error } = await supabase.from('rt').update({ 
-                name: newRT.name, 
-                rw_id: Number(newRT.rw_id) 
-            }).eq('id', editingRTId);
-            if (error) throw error;
-            alert('RT berhasil diupdate');
-            setEditingRTId(null);
-        } else {
-            const { error } = await supabase.from('rt').insert({ 
-                name: newRT.name, 
-                rw_id: Number(newRT.rw_id) 
-            });
-            if (error) throw error;
-            alert('RT berhasil ditambahkan');
-        }
-        setNewRT({ name: '', rw_id: '' });
-        fetchData();
+      if (editingRTId) {
+        await updateRT(editingRTId, newRT.name, Number(newRT.rw_id));
+        alert(isMock ? '[DEMO MODE] RT berhasil diupdate (Lokal)' : 'RT berhasil diupdate');
+        setEditingRTId(null);
+      } else {
+        await createRT(newRT.name, Number(newRT.rw_id));
+        alert(isMock ? '[DEMO MODE] RT berhasil ditambahkan (Lokal)' : 'RT berhasil ditambahkan');
+      }
+      setNewRT({ name: '', rw_id: '' });
+      fetchData();
     } catch (err: any) {
-        console.error(err);
-        alert('Gagal: ' + err.message);
+      alert('Gagal: ' + err.message);
     }
   };
 
   const deleteItem = async (table: string, id: number) => {
     if (confirm('Hapus data ini?')) {
       try {
-          const { error } = await supabase.from(table).delete().eq('id', id);
-          if (error) throw error;
-          fetchData();
+        await deleteLocation(table, id);
+        alert('Data berhasil dihapus');
+        fetchData();
       } catch (err: any) {
-          console.error(err);
-          if (err.code === '23503') {
-              alert('TIDAK BISA DIHAPUS!\n\nData ini sedang digunakan di data Entry/Kader. Hapus data terkait terlebih dahulu jika ingin menghapus wilayah ini.');
-          } else {
-              alert('Gagal menghapus: ' + err.message);
-          }
+        if (err.code === '23503') {
+          alert('TIDAK BISA DIHAPUS!\n\nData ini sedang digunakan di data Entry/Kader. Hapus data terkait terlebih dahulu jika ingin menghapus wilayah ini.');
+        } else {
+          alert('Gagal menghapus: ' + err.message);
+        }
       }
     }
   };
@@ -229,10 +214,12 @@ export default function LocationModule() {
 
   // Filtering logic for RT list
   const filteredRTs = rts.filter(rt => {
-    const matchesKelurahan = selectedKelurahanForRT 
-      ? String((rt as any).rw?.kelurahan_id) === selectedKelurahanForRT 
-      : true;
-    return matchesKelurahan;
+    if (!selectedKelurahanForRT) return true;
+    
+    const rw = (rt as any).rw;
+    if (!rw) return false;
+    
+    return String(rw.kelurahan_id) === selectedKelurahanForRT;
   });
 
   return (

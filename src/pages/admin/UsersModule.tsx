@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { getUsers, getKelurahans, getRWs, getRTs, updateUserStatus, deleteUser, adminUpdatePassword, adminDeleteUser } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@supabase/supabase-js';
 import { Kelurahan, RW, RT } from '@/types';
 import { Plus, UserX, UserCheck, Trash2, Info, Edit } from 'lucide-react';
 
 export default function UsersModule() {
+  const { isMock } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -137,6 +139,12 @@ export default function UsersModule() {
     e.preventDefault();
     if (!formData.nik || formData.nik.length < 5) {
       alert('NIK minimal 5 digit');
+      return;
+    }
+
+    if (isMock) {
+      alert('[DEMO MODE] Operasi Simpan/Update Kader berhasil (Lokal)');
+      cancelEdit();
       return;
     }
 
@@ -291,6 +299,11 @@ export default function UsersModule() {
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     if (confirm(`Apakah anda yakin ingin ${currentStatus ? 'menonaktifkan' : 'mengaktifkan'} user ini?`)) {
+      if (isMock) {
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, is_active: !currentStatus } : u));
+        alert('[DEMO MODE] Status user berhasil diubah (Lokal)');
+        return;
+      }
       await updateUserStatus(id, !currentStatus);
       loadUsers();
     }
@@ -298,6 +311,11 @@ export default function UsersModule() {
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`PERINGATAN KERAS:\n\nApakah anda yakin ingin MENGHAPUS PERMANEN user "${name}"?\n\nData yang sudah dihapus tidak bisa dikembalikan. User ini tidak akan bisa login lagi.`)) {
+      if (isMock) {
+        setUsers(prev => prev.filter(u => u.id !== id));
+        alert('[DEMO MODE] User berhasil dihapus (Lokal)');
+        return;
+      }
       try {
         setLoading(true);
         // 1. Delete Auth User via Backend (Edge Function)
