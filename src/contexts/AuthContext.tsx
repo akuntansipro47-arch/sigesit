@@ -42,6 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Fetch from server
     const fetchPkm = async () => {
+      // Skip real Supabase call if we are in forced mock mode
+      if (localStorage.getItem('force_mock_mode') === 'true') return;
+
       try {
         const { data, error } = await supabase.from('pkm_profile').select('*').maybeSingle();
         if (data) {
@@ -142,6 +145,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string) => {
+    // Skip real Supabase call if we are in forced mock mode
+    if (localStorage.getItem('force_mock_mode') === 'true') {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('user_profiles')
