@@ -59,17 +59,17 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // EMERGENCY BYPASS MODE
-      if (username === 'admin_sigesit' && password === 'sigesit2026') {
+      // EMERGENCY BYPASS MODE (Changed to avoid conflict with real admin)
+      if (username === 'admin_darurat' && password === 'sigesit2026') {
         localStorage.setItem('force_mock_mode', 'true');
         // Create a fake admin session
         const mockAdmin = {
           user: { id: 'admin-bypass-id', email: 'admin@sigesit.com' },
           profile: { 
             id: 'admin-bypass-id', 
-            name: 'SUPER ADMIN (BYPASS)', 
+            name: 'SUPER ADMIN (DARURAT)', 
             role: 'super_admin', 
-            username: 'admin_sigesit',
+            username: 'admin_darurat',
             is_active: true 
           }
         };

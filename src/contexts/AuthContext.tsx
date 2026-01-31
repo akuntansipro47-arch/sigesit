@@ -112,22 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // EMERGENCY FIX: If session is the bypass session, force mock mode
-      if (session?.user?.id === 'admin-bypass-id') {
-         console.log('Bypass session detected in Supabase initialization');
-         setSession(session);
-         setUser(session.user);
-         setProfile({
-            id: 'admin-bypass-id', 
-            name: 'SUPER ADMIN (BYPASS)', 
-            role: 'super_admin', 
-            username: 'admin_sigesit',
-            is_active: true 
-         });
-         setLoading(false);
-         return;
-      }
-
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -232,10 +216,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pkmProfile,
     loading,
     signOut,
-    isAdmin: profile?.role?.toLowerCase().includes('admin') || false,
+    isAdmin: profile?.role?.toLowerCase().includes('admin') || session?.user?.id === 'admin-bypass-id' || false,
     isKader: profile?.role?.toLowerCase() === 'kader' || false,
     mockLogin,
-    isMock: USE_MOCK || localStorage.getItem('force_mock_mode') === 'true'
+    isMock: USE_MOCK || localStorage.getItem('force_mock_mode') === 'true' || session?.user?.id === 'admin-bypass-id'
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
