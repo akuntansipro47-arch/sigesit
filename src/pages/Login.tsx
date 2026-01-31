@@ -274,17 +274,30 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
 
       <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] w-full max-w-md border border-white/50 relative z-10">
         <div className="text-center mb-8">
-          <div className="bg-gradient-to-tr from-blue-600 to-teal-500 w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200 transform hover:scale-105 transition-transform duration-300">
-             {/* Dynamic Logo from Realtime Context */}
+          <div className="bg-white p-4 rounded-full shadow-lg border-2 border-blue-100 w-32 h-32 flex items-center justify-center overflow-hidden mb-6 relative z-10 group cursor-pointer hover:scale-105 transition-transform duration-300 mx-auto">
              <img 
                src={logoUrl || '/logo-sigesit.png'} 
-               alt="Logo" 
-               className="w-16 h-16 object-contain brightness-0 invert drop-shadow-md"
+               alt="Logo PKM" 
+               className="w-full h-full object-contain"
                onError={(e) => {
                  const target = e.target as HTMLImageElement;
                  target.src = '/logo-sigesit.png';
-               }} 
+               }}
+               onClick={() => {
+                 // Manual Refresh Logo
+                 setLogoUrl('/logo-sigesit.png');
+                 setTimeout(() => {
+                    const local = localStorage.getItem('pkm_profile_v1');
+                    if (local) {
+                      const parsed = JSON.parse(local);
+                      if (parsed.logo_url) setLogoUrl(`${parsed.logo_url}?t=${new Date().getTime()}`);
+                    }
+                 }, 500);
+               }}
              />
+             <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                <span className="text-white text-[10px] font-bold text-center px-2">KLIK UNTUK REFRESH LOGO</span>
+             </div>
           </div>
           <h1 className="text-3xl font-black text-blue-600 tracking-tight mb-2">SIGESIT SADAKELING</h1>
           <p className="text-slate-500 font-bold text-xs tracking-widest uppercase">PKM PADASUKA - KOTA CIMAHI</p>
@@ -297,7 +310,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
               </div>
             ) : (
               <div className="inline-block bg-gradient-to-r from-red-600 to-rose-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-red-200 animate-bounce border border-white/20">
-                V4.4.10 FINAL STABLE
+                V4.4.11 FINAL STABLE
               </div>
             )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
@@ -374,11 +387,15 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
             {loading ? 'Memproses...' : 'Login'}
           </button>
         </form>
-      </div>
-      
-      <div className="text-center mt-8 text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.10</p>
-        <p>info@akuntansipro.com</p>
+
+        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
+              &copy; 2026 akuntansipro.com | SIGESIT V4.4.11
+            </p>
+            <p className="text-[9px] text-slate-300 font-semibold tracking-wider mt-1">
+              info@akuntansipro.com
+            </p>
+        </div>
       </div>
     </div>
   );
