@@ -7,7 +7,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { registerSW } from 'virtual:pwa-register'
 
 // Register PWA Service Worker
-console.log('SIGESIT V4.4.5 LOADED - 31 JAN 2026 16:00');
+console.log('SIGESIT V4.4.6 LOADED - 31 JAN 2026 16:15');
 const updateSW = registerSW({
   onNeedRefresh() {
     if (confirm('Aplikasi versi baru tersedia. Refresh sekarang?')) {

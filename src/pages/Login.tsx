@@ -199,7 +199,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
   }, [isMock]);
 
   const handleHardReset = async () => {
-    if (confirm('Aplikasi akan di-reset total untuk memperbaiki masalah update. Lanjutkan?')) {
+    if (confirm('Aplikasi akan dipaksa update ke versi terbaru (V4.4.6). Lanjutkan?')) {
       // 1. Unregister Service Workers
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -263,16 +263,16 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
               </div>
             ) : (
               <div className="inline-block bg-gradient-to-r from-red-600 to-rose-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-red-200 animate-bounce border border-white/20">
-                V4.4.4 FINAL STABLE
+                V4.4.6 FINAL STABLE
               </div>
             )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Update Terakhir: 31 Jan 2026 | 15:30 WIB
+              Update Terakhir: 31 Jan 2026 | 16:15 WIB
             </div>
             <button 
               onClick={handleHardReset}
-              className="mt-2 text-[9px] font-bold text-rose-500 hover:text-rose-600 underline decoration-dotted cursor-pointer"
+              className="mt-2 text-[9px] font-bold text-rose-500 hover:text-rose-600 underline decoration-dotted cursor-pointer hover:bg-rose-50 px-2 py-1 rounded"
             >
               [ KLIK DISINI JIKA APLIKASI MACET / TIDAK UPDATE ]
             </button>

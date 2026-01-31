@@ -13,6 +13,8 @@ export default defineConfig({
                 cleanupOutdatedCaches: true,
                 skipWaiting: true,
                 clientsClaim: true,
+                // FORCE NETWORK FOR HTML TO AVOID STALE INDEX
+                navigateFallback: null,
                 runtimeCaching: [
                     {
                         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
