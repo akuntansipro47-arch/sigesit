@@ -10,8 +10,9 @@ export const getPKMProfile = async (skipFallback: boolean = false) => {
   if (USE_MOCK) return mockApi.getPKMProfile();
   
   try {
-    const { data, error } = await supabase.from('pkm_profile').select('*').single();
+    const { data, error } = await supabase.from('pkm_profile').select('*').maybeSingle();
     if (error) throw error;
+    if (!data) throw new Error('Data profil kosong di server');
     return data as Profile;
   } catch (error) {
     if (skipFallback) throw error;
