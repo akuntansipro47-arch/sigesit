@@ -9,7 +9,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoUrl, setLogoUrl] = useState<string>('/logo-sigesit.png');
   const navigate = useNavigate();
   const { profile, session, mockLogin, isMock, pkmProfile } = useAuth();
 
@@ -297,7 +297,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
               </div>
             ) : (
               <div className="inline-block bg-gradient-to-r from-red-600 to-rose-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-red-200 animate-bounce border border-white/20">
-                V4.4.9 FINAL STABLE
+                V4.4.10 FINAL STABLE
               </div>
             )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
@@ -377,7 +377,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
       </div>
       
       <div className="text-center mt-8 text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.9</p>
+        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.10</p>
         <p>info@akuntansipro.com</p>
       </div>
     </div>
