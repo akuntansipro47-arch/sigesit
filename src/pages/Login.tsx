@@ -13,12 +13,39 @@ export default function Login() {
   const navigate = useNavigate();
   const { profile, session, mockLogin, isMock, pkmProfile } = useAuth();
 
+  // FORCE FETCH LOGO ON MOUNT
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        // Try local first for speed
+        const local = localStorage.getItem('pkm_profile_v1');
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (parsed.logo_url) setLogoUrl(parsed.logo_url);
+        }
+
+        // Then fetch fresh from server
+        const { data } = await supabase.from('pkm_profile').select('logo_url').maybeSingle();
+        if (data?.logo_url) {
+          setLogoUrl(data.logo_url);
+          // Update local storage subtly
+          if (local) {
+             const parsed = JSON.parse(local);
+             parsed.logo_url = data.logo_url;
+             localStorage.setItem('pkm_profile_v1', JSON.stringify(parsed));
+          }
+        }
+      } catch (e) {
+        console.error('Logo fetch error', e);
+      }
+    };
+    fetchLogo();
+  }, []);
+
   useEffect(() => {
     if (pkmProfile?.logo_url) {
       setLogoUrl(pkmProfile.logo_url);
-    } else {
-      setLogoUrl('/logo-sigesit.png');
-    }
+    } 
   }, [pkmProfile]);
 
   // Redirect if already logged in
@@ -269,7 +296,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
               </div>
             ) : (
               <div className="inline-block bg-gradient-to-r from-red-600 to-rose-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-red-200 animate-bounce border border-white/20">
-                V4.4.7 FINAL STABLE
+                V4.4.8 FINAL STABLE
               </div>
             )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
@@ -349,7 +376,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
       </div>
       
       <div className="text-center mt-8 text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.7</p>
+        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.8</p>
         <p>info@akuntansipro.com</p>
       </div>
     </div>
