@@ -16,7 +16,7 @@ function App() {
         const response = await fetch('/version.json?t=' + new Date().getTime());
         const data = await response.json();
         const serverVersion = data.version;
-        const localVersion = '4.4.4'; // UPDATE THIS MANUALLY IN CODE
+        const localVersion = '4.4.5'; // UPDATE THIS MANUALLY IN CODE
         
         console.log(`Version Check: Server ${serverVersion} vs Local ${localVersion}`);
         
