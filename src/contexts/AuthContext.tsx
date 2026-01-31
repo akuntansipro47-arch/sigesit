@@ -112,6 +112,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // EMERGENCY FIX: If session is the bypass session, force mock mode
+      if (session?.user?.id === 'admin-bypass-id') {
+         console.log('Bypass session detected in Supabase initialization');
+         setSession(session);
+         setUser(session.user);
+         setProfile({
+            id: 'admin-bypass-id', 
+            name: 'SUPER ADMIN (BYPASS)', 
+            role: 'super_admin', 
+            username: 'admin_sigesit',
+            is_active: true 
+         });
+         setLoading(false);
+         return;
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
