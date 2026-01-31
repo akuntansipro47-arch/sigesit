@@ -199,6 +199,15 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
   }, [isMock]);
 
   const handleHardReset = async () => {
+    // FORCE CLEAR ALL
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear cookies if any
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+
     if (confirm('Aplikasi akan di-reset total untuk memperbaiki masalah update. Lanjutkan?')) {
       // 1. Unregister Service Workers
       if ('serviceWorker' in navigator) {
