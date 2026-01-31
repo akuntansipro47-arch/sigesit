@@ -11,23 +11,45 @@ function App() {
 
   // Force reload if version mismatch (Simple cache buster)
   useEffect(() => {
-    const lastVersion = localStorage.getItem('app_version');
-    const currentVersion = '4.4.3'; // MAJOR UPDATE: Kill Cache
-    if (lastVersion && lastVersion !== currentVersion) {
-      console.log('New version detected, updating...');
-      localStorage.setItem('app_version', currentVersion);
-      // Force clear all caches for major update
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) {
-            registration.unregister();
+    const checkVersion = async () => {
+      try {
+        const response = await fetch('/version.json?t=' + new Date().getTime());
+        const data = await response.json();
+        const serverVersion = data.version;
+        const localVersion = '4.4.4'; // UPDATE THIS MANUALLY IN CODE
+        
+        console.log(`Version Check: Server ${serverVersion} vs Local ${localVersion}`);
+        
+        if (serverVersion !== localVersion) {
+          console.log('New version detected! Forcing update...');
+          
+          // 1. Unregister Service Workers
+          if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+              await registration.unregister();
+            }
           }
-        });
+          
+          // 2. Clear Caches
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+          }
+
+          // 3. Reload
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Failed to check version:', error);
       }
-      window.location.reload();
-    } else if (!lastVersion) {
-      localStorage.setItem('app_version', currentVersion);
-    }
+    };
+
+    checkVersion();
+    
+    // Also keep the interval check for long-running sessions
+    const interval = setInterval(checkVersion, 60 * 1000); // Check every minute
+    return () => clearInterval(interval);
   }, []);
 
   // Process offline queue on app load

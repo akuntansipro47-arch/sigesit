@@ -90,9 +90,11 @@ export default function UsersModule() {
     }
   };
 
+  /*
   const handleUpdatePassword = () => {
     alert('FITUR DINAMIS AKTIF:\n\nSekarang Anda bisa langsung mengganti password kader dengan cara:\n1. Klik tombol Edit (ikon pensil) pada kader yang diinginkan.\n2. Masukkan password baru pada kolom "Ganti Password Login".\n3. Klik "Simpan Perubahan".\n\nSistem akan otomatis mengupdate password login kader tersebut tanpa perlu buka Dashboard Supabase lagi.');
   };
+  */
 
   const handleEdit = (user: any) => {
     setEditingUserId(user.id);
@@ -282,13 +284,6 @@ export default function UsersModule() {
       });
       setPasswordInput('');
       alert(`User Berhasil Dibuat!\n\nUsername: ${username}\nPassword: ${finalPassword}\nRole: ${formData.role === 'super_admin' ? 'FULL ACCESS' : 'KADER'}`);
-    } catch (error: any) {
-      console.error(error);
-      alert(error.message || 'Gagal menyimpan user. Pastikan NIK unik.');
-    } finally {
-      setLoading(false);
-    }
-  };
     } catch (error: any) {
       console.error(error);
       alert(error.message || 'Gagal menyimpan user. Pastikan NIK unik.');
