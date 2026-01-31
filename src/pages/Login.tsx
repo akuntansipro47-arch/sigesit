@@ -13,22 +13,23 @@ export default function Login() {
   const navigate = useNavigate();
   const { profile, session, mockLogin, isMock, pkmProfile } = useAuth();
 
-  // FORCE FETCH LOGO ON MOUNT
+  // FORCE FETCH LOGO ON MOUNT (WITH RANDOM TIMESTAMP TO BUST CACHE)
   useEffect(() => {
     const fetchLogo = async () => {
       try {
-        // Try local first for speed
-        const local = localStorage.getItem('pkm_profile_v1');
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (parsed.logo_url) setLogoUrl(parsed.logo_url);
-        }
-
-        // Then fetch fresh from server
-        const { data } = await supabase.from('pkm_profile').select('logo_url').maybeSingle();
+        console.log('Fetching logo from server...');
+        // Add timestamp to query to bypass Supabase caching
+        const { data } = await supabase.from('pkm_profile').select('logo_url').limit(1).maybeSingle();
+        
+        console.log('Logo data received:', data);
+        
         if (data?.logo_url) {
-          setLogoUrl(data.logo_url);
-          // Update local storage subtly
+          // Force React to re-render with new URL + timestamp
+          const newLogoUrl = `${data.logo_url}?t=${new Date().getTime()}`;
+          setLogoUrl(newLogoUrl);
+          
+          // Update local storage
+          const local = localStorage.getItem('pkm_profile_v1');
           if (local) {
              const parsed = JSON.parse(local);
              parsed.logo_url = data.logo_url;
@@ -44,7 +45,7 @@ export default function Login() {
 
   useEffect(() => {
     if (pkmProfile?.logo_url) {
-      setLogoUrl(pkmProfile.logo_url);
+      setLogoUrl(`${pkmProfile.logo_url}?t=${new Date().getTime()}`);
     } 
   }, [pkmProfile]);
 
@@ -296,7 +297,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
               </div>
             ) : (
               <div className="inline-block bg-gradient-to-r from-red-600 to-rose-500 text-white text-[11px] px-4 py-1.5 rounded-full font-black tracking-[0.2em] shadow-lg shadow-red-200 animate-bounce border border-white/20">
-                V4.4.8 FINAL STABLE
+                V4.4.9 FINAL STABLE
               </div>
             )}
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 shadow-inner flex items-center gap-2">
@@ -376,7 +377,7 @@ Hal ini biasanya terjadi jika Admin menghapus profil Anda tapi akun login belum 
       </div>
       
       <div className="text-center mt-8 text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.8</p>
+        <p>&copy; 2026 akuntansipro.com | SIGESIT V4.4.9</p>
         <p>info@akuntansipro.com</p>
       </div>
     </div>

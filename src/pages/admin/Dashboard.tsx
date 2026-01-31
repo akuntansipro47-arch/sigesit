@@ -76,7 +76,7 @@ export default function AdminDashboard() {
         </div>
         <div className="p-4 text-center text-[9px] text-slate-400 border-t border-blue-50 bg-slate-50/50 font-medium">
            <p>&copy; 2026 akuntansipro.com</p>
-           <p className="mt-0.5 text-blue-400/60 uppercase">Sigesit Sadakeling v4.4.8</p>
+           <p className="mt-0.5 text-blue-400/60 uppercase">Sigesit Sadakeling v4.4.9</p>
         </div>
       </div>
 
