@@ -42,10 +42,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Fetch from server
     const fetchPkm = async () => {
-      const { data } = await supabase.from('pkm_profile').select('*').single();
-      if (data) {
-        setPkmProfile(data);
-        localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
+      try {
+        const { data, error } = await supabase.from('pkm_profile').select('*').maybeSingle();
+        if (data) {
+          setPkmProfile(data);
+          localStorage.setItem('pkm_profile_v1', JSON.stringify(data));
+        } else if (error) {
+          console.warn('PKM Profile not found or error:', error.message);
+        }
+      } catch (err) {
+        console.error('Failed to fetch PKM profile:', err);
       }
     };
     fetchPkm();
@@ -141,10 +147,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching profile:', error);
+      } else if (!data) {
+        console.warn('No profile found for user:', userId);
+        // If no profile exists, we can't let them stay logged in
+        if (!USE_MOCK && localStorage.getItem('force_mock_mode') !== 'true') {
+           await supabase.auth.signOut();
+           setProfile(null);
+        }
       } else {
         // CHECK IF USER IS STILL ACTIVE
         if (data && data.is_active === false) {
